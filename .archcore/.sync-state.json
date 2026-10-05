@@ -1,0 +1,286 @@
+{
+  "version": 1,
+  "files": {},
+  "relations": [
+    {
+      "source": "research/polybrief-review-engine.rnd.md",
+      "target": "runtime/polybrief-review.spec.md",
+      "type": "supports"
+    },
+    {
+      "source": "research/polybrief-review-engine.rnd.md",
+      "target": "architecture/ultraswarm-optional-engine.adr.md",
+      "type": "supports"
+    },
+    {
+      "source": "research/polybrief-pattern-layer.rnd.md",
+      "target": "architecture/polybrief-pattern-runner.adr.md",
+      "type": "supports"
+    },
+    {
+      "source": "architecture/polybrief-pattern-runner.adr.md",
+      "target": "architecture/ultraswarm-optional-engine.adr.md",
+      "type": "supersedes"
+    },
+    {
+      "source": "runtime/polybrief-pattern-runner.spec.md",
+      "target": "architecture/polybrief-pattern-runner.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-pattern-file.spec.md",
+      "target": "architecture/polybrief-pattern-runner.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-pattern-runner.spec.md",
+      "target": "runtime/polybrief-pattern-file.spec.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "runtime/polybrief-pattern-runner.spec.md",
+      "target": "runtime/polybrief-review.spec.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "runtime/polybrief-pattern-runner.plan.md",
+      "target": "runtime/polybrief-pattern-runner.spec.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-pattern-runner.plan.md",
+      "target": "architecture/polybrief-pattern-runner.adr.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "research/polybrief-review-findings.doc.md",
+      "target": "runtime/polybrief-pattern-runner.plan.md",
+      "type": "supports"
+    },
+    {
+      "source": "architecture/standalone-runtime.adr.md",
+      "target": "architecture/polybrief-pattern-runner.adr.md",
+      "type": "supersedes"
+    },
+    {
+      "source": "runtime/polybrief-review.spec.md",
+      "target": "architecture/standalone-runtime.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-pattern-runner.spec.md",
+      "target": "architecture/standalone-runtime.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/cli.spec.md",
+      "target": "architecture/standalone-runtime.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/cli.spec.md",
+      "target": "runtime/polybrief-review.spec.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "runtime/cli.spec.md",
+      "target": "runtime/polybrief-pattern-runner.spec.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "research/polybrief-measured-runs.rnd.md",
+      "target": "runtime/polybrief-pattern-runner.plan.md",
+      "type": "implements"
+    },
+    {
+      "source": "research/polybrief-measured-runs.rnd.md",
+      "target": "research/polybrief-pattern-layer.rnd.md",
+      "type": "extends"
+    },
+    {
+      "source": "runtime/polybrief-cli.spec.md",
+      "target": "architecture/go-runtime.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-config.spec.md",
+      "target": "architecture/go-runtime.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/go-runtime.plan.md",
+      "target": "runtime/polybrief-cli.spec.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/go-runtime.plan.md",
+      "target": "runtime/polybrief-config.spec.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/go-runtime.plan.md",
+      "target": "architecture/go-runtime.adr.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "architecture/go-runtime.adr.md",
+      "target": "architecture/standalone-runtime.adr.md",
+      "type": "extends"
+    },
+    {
+      "source": "architecture/go-runtime.adr.md",
+      "target": "architecture/polybrief-pattern-runner.adr.md",
+      "type": "extends"
+    },
+    {
+      "source": "research/polybrief-measured-runs.rnd.md",
+      "target": "architecture/go-runtime.adr.md",
+      "type": "supports"
+    },
+    {
+      "source": "runtime/polybrief-cli.spec.md",
+      "target": "runtime/polybrief-config.spec.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "runtime/polybrief-cli.spec.md",
+      "target": "runtime/polybrief-pattern-runner.spec.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "runtime/polybrief-cli.spec.md",
+      "target": "runtime/polybrief-review.spec.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "runtime/polybrief-reference.doc.md",
+      "target": "runtime/polybrief-cli.spec.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/polybrief-reference.doc.md",
+      "target": "runtime/polybrief-config.spec.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/polybrief-reference.doc.md",
+      "target": "runtime/polybrief-pattern-file.spec.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/polybrief-cli.spec.md",
+      "target": "runtime/cli.spec.md",
+      "type": "supersedes"
+    },
+    {
+      "source": "runtime/review-consistency-iteration.plan.md",
+      "target": "runtime/polybrief-review.spec.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/review-consistency-iteration.plan.md",
+      "target": "runtime/polybrief-pattern-runner.spec.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/review-consistency-iteration.plan.md",
+      "target": "runtime/polybrief-cli.spec.md",
+      "type": "implements"
+    },
+    {
+      "source": "ideas/jev-answer-postprocessing.idea.md",
+      "target": "research/polybrief-measured-runs.rnd.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "research/polybrief-go-review-comparison.rnd.md",
+      "target": "runtime/review-consistency-iteration.plan.md",
+      "type": "supports"
+    },
+    {
+      "source": "architecture/opencode-readonly-worker.adr.md",
+      "target": "research/opencode-cli-integration.research.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "architecture/opencode-readonly-worker.adr.md",
+      "target": "architecture/general-purpose-pattern-runtime.adr.md",
+      "type": "extends"
+    },
+    {
+      "source": "runtime/opencode-worker-stakeholders.strs.md",
+      "target": "runtime/opencode-worker-business.brs.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/opencode-worker-system.syrs.md",
+      "target": "runtime/opencode-worker-stakeholders.strs.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/opencode-worker-software.srs.md",
+      "target": "runtime/opencode-worker-system.syrs.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/opencode-worker.spec.md",
+      "target": "architecture/opencode-readonly-worker.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/opencode-worker.spec.md",
+      "target": "runtime/polybrief-review.spec.md",
+      "type": "extends"
+    },
+    {
+      "source": "runtime/opencode-worker-software.srs.md",
+      "target": "runtime/opencode-worker.spec.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/opencode-worker.plan.md",
+      "target": "runtime/opencode-worker.spec.md",
+      "type": "implements"
+    },
+    {
+      "source": "architecture/opencode-readonly-worker.adr.md",
+      "target": "architecture/go-runtime.adr.md",
+      "type": "extends"
+    },
+    {
+      "source": "architecture/release-distribution.adr.md",
+      "target": "architecture/go-runtime.adr.md",
+      "type": "extends"
+    },
+    {
+      "source": "runtime/polybrief-release.spec.md",
+      "target": "architecture/release-distribution.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-release.spec.md",
+      "target": "runtime/polybrief-cli.spec.md",
+      "type": "extends"
+    },
+    {
+      "source": "runtime/polybrief-release.guide.md",
+      "target": "runtime/polybrief-release.spec.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/polybrief-release.plan.md",
+      "target": "runtime/polybrief-release.spec.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-release.plan.md",
+      "target": "architecture/release-distribution.adr.md",
+      "type": "depends_on"
+    },
+    {
+      "source": "architecture/polybrief-rename.adr.md",
+      "target": "architecture/general-purpose-pattern-runtime.adr.md",
+      "type": "extends"
+    }
+  ]
+}

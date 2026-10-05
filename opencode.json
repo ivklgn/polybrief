@@ -1,0 +1,11 @@
+{
+  "mcp": {
+    "archcore": {
+      "type": "local",
+      "command": [
+        "archcore",
+        "mcp"
+      ]
+    }
+  }
+}

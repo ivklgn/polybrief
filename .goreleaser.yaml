@@ -1,0 +1,26 @@
+version: 2
+
+# Release contract: .archcore/runtime/polybrief-release.spec.md
+builds:
+  - binary: polybrief
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "polybrief_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+release:
+  # A re-run after a partial upload replaces the assets that already landed.
+  replace_existing_artifacts: true

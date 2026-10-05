@@ -1,0 +1,59 @@
+name: Release
+
+# A vX.Y.Z tag publishes six archives and checksums.txt to a GitHub Release.
+# Contract: .archcore/runtime/polybrief-release.spec.md; procedure: polybrief-release.guide.md.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Tag is the next release version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # The tag is the only version source, so it must directly follow the previous release tag.
+      - name: Check the tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          semver='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+          echo "$TAG" | grep -Eq "$semver" || { echo "::error::$TAG is not vMAJOR.MINOR.PATCH"; exit 1; }
+          previous=$(git tag --list 'v*' --sort=-v:refname | grep -E "$semver" | grep -vxF "$TAG" | head -n 1 || true)
+          [ -n "$previous" ] || { echo "$TAG is the first release"; exit 0; }
+          IFS=. read -r major minor patch <<< "${previous#v}"
+          case "${TAG#v}" in
+            "$major.$minor.$((patch + 1))" | "$major.$((minor + 1)).0" | "$((major + 1)).0.0")
+              echo "$TAG follows $previous" ;;
+            *) echo "::error::$TAG does not follow $previous"; exit 1 ;;
+          esac
+
+  checks:
+    needs: tag
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Build and publish
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

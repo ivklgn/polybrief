@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Check formatting
+        if: runner.os != 'Windows'
+        run: |
+          unformatted=$(gofmt -l .)
+          [ -z "$unformatted" ] || { echo "::error::gofmt would rewrite: $unformatted"; exit 1; }
+
+      - run: go vet ./...
+
+      - run: go test ./...
+
+      # The fake workers are extensionless shell scripts, which Windows cannot start.
+      - name: Shell checks with fake workers
+        if: runner.os != 'Windows'
+        run: |
+          bash tests/test_review.sh
+          bash tests/test_pattern.sh
+          bash tests/test_cli.sh

@@ -1,0 +1,81 @@
+# Settings of the polybrief binary. Every line is optional: an absent file gives the defaults.
+#
+# Copy to ~/.config/polybrief/polybrief.conf (or $XDG_CONFIG_HOME/polybrief/polybrief.conf), or point
+# POLYBRIEF_CONFIG or --config at another file. One setting for one run: polybrief -o KEY=VALUE.
+# See what is in effect: polybrief config
+#
+# Syntax: general keys first, then one section per client. `#` starts a comment only at
+# the start of a line. Lists are comma-separated. An empty value means the default.
+# The 0.1.0 form `codex.model = ...` before the first section still works.
+# A settings file inside the reviewed project is refused: a pull request cannot change your polybrief.
+
+# --- General ----------------------------------------------------------------------------------
+
+# Clients of a run. A pattern names its own participants; -w LIST narrows them.
+# workers = codex, claude
+# OpenCode runs only in a pattern that names it, such as -p opencode; this file setting does not
+# change pattern runs.
+
+# The pattern of a run without -p: parallel, twice, panel, research, opencode, or one of yours.
+# pattern = parallel
+
+# Seconds per worker call. A worker over the limit gets TERM, and KILL five seconds later.
+# timeout = 900
+
+# Most worker calls in one run, for patterns without their own max-calls (1 to 40).
+# -o max_calls=N also overrides a pattern's max-calls.
+# max_calls = 12
+
+# Environment variable names passed to the workers besides HOME, PATH, USER, LOGNAME, SHELL,
+# LANG, LC_ALL, LC_CTYPE, TERM, TMPDIR, CODEX_HOME and CLAUDE_CONFIG_DIR. Names only: values come
+# from your environment, and everything else is dropped. Example: HTTPS_PROXY, SSL_CERT_FILE
+# env =
+
+# Directories outside the project that workers may read: shared docs, a spec repository.
+# context_dirs =
+
+# More names of secret-like files left out of the diff, matched on the file name and the path,
+# besides .env, .env.*, .envrc, *.pem, *.key, *.p12, *.pfx, id_rsa*, id_ed25519*, id_ecdsa*, id_dsa*.
+# secret_names =
+
+# The diff is cut at this size; the workers then get the list of changed files and read the rest.
+# max_diff_bytes = 400000
+
+# on: with -b, the prompt holds the commits of the change and the recent history of the files.
+# history = on
+
+# on: the workers report in JSON, so polybrief prints TOOLS and TOKENS lines.
+# tool_log = on
+
+# One line per worker call, and the judge's yield, appended to this file. off: no log.
+# log = ~/.local/state/polybrief/polybrief-runs.tsv
+
+# Your patterns; a file here replaces a built-in pattern of the same name.
+# patterns_dir = ~/.config/polybrief/patterns
+
+# --- Clients ----------------------------------------------------------------------------------
+
+[codex]
+# Empty: the top-level `model` of ~/.codex/config.toml.
+# model =
+# minimal | low | medium | high | xhigh. Empty: `model_reasoning_effort` of config.toml.
+# effort =
+# on lets codex search the web: a way out of your machine for what it has read.
+# web = off
+
+[claude]
+# Empty: the CLI default. An alias such as sonnet or opus, or a full id.
+# model =
+# low | medium | high | xhigh | max. Empty: the CLI default.
+# effort =
+# on also gives claude WebFetch and WebSearch.
+# web = off
+
+[opencode]
+# Provider/model, for example openai/gpt-5. Required when opencode runs.
+# model =
+# Provider-specific reasoning variant, for example high. Empty: OpenCode's default.
+# variant =
+# on permits webfetch, and websearch where OpenCode offers it: the opencode providers, or
+# OPENCODE_ENABLE_EXA or OPENCODE_ENABLE_PARALLEL named in env. The default read-only profile denies both.
+# web = off
