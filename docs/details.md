@@ -9,26 +9,20 @@ Needs a configured CLI for each selected worker (`codex`, `claude`, or `opencode
 Git is needed only for review mode. A worker using an API provider may need a key;
 a CLI using a subscription login may not. The binary embeds its built-in patterns.
 
-Download the archive for your system from
-[Releases](https://github.com/ivklgn/polybrief/releases/latest):
-`polybrief_<os>_<arch>.tar.gz` for `linux` and `darwin`, `polybrief_windows_<arch>.zip`,
-where `<arch>` is `amd64` or `arm64`. Each release has a `checksums.txt` (SHA-256).
+The install scripts download the release archive for your system, check it against
+`checksums.txt` (SHA-256), and put the binary in place:
 
-```bash
-# macOS or Linux; put the binary in any directory on PATH
-os=$(uname -s | tr A-Z a-z); arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-curl -fsSLO "https://github.com/ivklgn/polybrief/releases/latest/download/polybrief_${os}_${arch}.tar.gz"
-tar -xzf "polybrief_${os}_${arch}.tar.gz" polybrief && mkdir -p ~/.local/bin && mv polybrief ~/.local/bin/
-polybrief --version
-```
+- [`install.sh`](../install.sh) (macOS, Linux): `~/.local/bin/polybrief`. It prints a hint
+  when that directory is not on `PATH`; it does not edit your shell files.
+- [`install.ps1`](../install.ps1) (Windows): `%LOCALAPPDATA%\Programs\polybrief\polybrief.exe`,
+  and it adds that directory to your user `PATH`.
 
-```powershell
-# Windows (PowerShell); put polybrief.exe in any directory on PATH
-$arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
-Invoke-WebRequest "https://github.com/ivklgn/polybrief/releases/latest/download/polybrief_windows_$arch.zip" -OutFile polybrief.zip
-Expand-Archive polybrief.zip -DestinationPath "$env:LOCALAPPDATA\Programs\polybrief"
-& "$env:LOCALAPPDATA\Programs\polybrief\polybrief.exe" --version
-```
+Both read `POLYBRIEF_VERSION` (for example `v0.2.0`; default: latest release) and
+`POLYBRIEF_INSTALL_DIR`. Run the same command again to update.
+
+Manual install: download `polybrief_<os>_<arch>.tar.gz` (`linux`, `darwin`) or
+`polybrief_windows_<arch>.zip` from [Releases](https://github.com/ivklgn/polybrief/releases/latest),
+where `<arch>` is `amd64` or `arm64`, and put the binary in any directory on `PATH`.
 
 Windows support is experimental: the read-only isolation of the workers has been
 checked on macOS and Linux only. The binaries are not signed, so macOS may block a

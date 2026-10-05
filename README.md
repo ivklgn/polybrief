@@ -15,17 +15,21 @@ The agents run **read-only**: they read your code, they do not change it.
 
 ## Install
 
-You need the agent CLIs you want to use, already logged in: `codex`, `claude`, and/or `opencode`.
+macOS or Linux:
 
 ```bash
-# macOS or Linux
-os=$(uname -s | tr A-Z a-z); arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-curl -fsSLO "https://github.com/ivklgn/polybrief/releases/latest/download/polybrief_${os}_${arch}.tar.gz"
-tar -xzf "polybrief_${os}_${arch}.tar.gz" polybrief && mkdir -p ~/.local/bin && mv polybrief ~/.local/bin/
+curl -fsSL https://raw.githubusercontent.com/ivklgn/polybrief/main/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/ivklgn/polybrief/main/install.ps1 | iex
 ```
 
 Or with Go 1.25+: `go install github.com/ivklgn/polybrief@latest`.
-Windows and other options: [details](docs/details.md#install).
+
+You also need the agent CLIs you want to use, already logged in: `codex`, `claude`, and/or `opencode`.
 
 ## Try it
 
