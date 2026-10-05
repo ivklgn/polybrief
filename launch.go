@@ -1101,6 +1101,10 @@ func openCodeEnvironment(base []string, tmpRoot string, web bool, ctx []string) 
 		} else if !os.IsNotExist(err) {
 			cleanup()
 			return nil, nil, err
+		} else if fi, err := os.Stat(filepath.Dir(auth)); err == nil && !fi.IsDir() {
+			// Unix stops above with ENOTDIR; Windows reports a file on the path as "not found".
+			cleanup()
+			return nil, nil, fmt.Errorf("OpenCode login location %s is not a directory", filepath.Dir(auth))
 		}
 	}
 	// OpenCode applies the last matching rule, and json.Marshal sorts keys, so "*" comes first.
