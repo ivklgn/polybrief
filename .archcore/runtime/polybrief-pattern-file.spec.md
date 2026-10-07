@@ -22,7 +22,7 @@ Normative for polybrief pattern files: what a file holds and how each part is re
 | `workers` | participants of a stage that has no `run`, comma-separated | required |
 | `max-calls` | highest number of launcher calls in one run | the setting `max_calls`, 12 |
 
-- Stage: one `## <id>` section. Its settings are the `- key: value` lines right under the heading, with no blank line between. The first other line starts the stage prompt; leading blank lines of the prompt are dropped. A `## ` line always starts a new stage, so a prompt uses `###` for its own headings.
+- Stage: one `## <id>` section. Its settings are the `- key: value` lines right under the heading; blank lines between the heading and the first setting are skipped, as Markdown formatters add one. After the first setting, the first other line starts the stage prompt; leading blank lines of the prompt are dropped. A `## ` line always starts a new stage, so a prompt uses `###` for its own headings.
 
 | Stage setting | Value | Default |
 |---|---|---|

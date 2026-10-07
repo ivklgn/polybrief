@@ -237,6 +237,24 @@ out=$(run --pattern retry)
 grep -q "^WORKER	review	1	codex	malformed	" <<< "$out" && [ "$(calls)" = 3 ] || fail "retries must stop at the limit: $(calls) $out"
 reset
 
+# a blank line between the heading and the settings, as Markdown formatters write it
+pat blank <<'EOF'
+---
+name: blank
+description: test
+workers: codex, claude
+---
+
+## review
+
+- run: codex as one
+- input: none
+
+{{brief}}
+EOF
+out=$("$SW" runner --check --pattern blank)
+has "$out" "$(printf 'PLAN\treview\tone\t1')" || fail "settings after a blank line must still apply: $out"
+
 # a failed participant: the run goes on, and a later stage is told
 ans refute/review/1/claude 'STATUS:failed'
 ans refute/refute/1/codex 'NO FINDINGS TO CHECK'; ans refute/refute/1/claude 'VERDICT: UNSURE'

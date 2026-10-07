@@ -6,6 +6,7 @@ max-calls: 4
 ---
 
 ## review
+
 - run: codex as risk with review-security+review-tests
 - run: claude as design with run
 - expect: ^(FINDING|NOT-CHECKED|NO FINDINGS)

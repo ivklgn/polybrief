@@ -12,6 +12,7 @@ max-calls: 6
 State your conclusion, evidence, assumptions, and open questions. Stay read-only.
 
 ## critique
+
 - input: others
 
 {{brief}}

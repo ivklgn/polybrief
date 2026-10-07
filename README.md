@@ -59,12 +59,15 @@ prompt, answer, and log. The last line, `RESULT`, says `complete`, `partial`, `s
 
 A pattern is a small Markdown file that says who answers and in which order.
 
-**`parallel`** (default): Codex and Claude answer independently.
+**`parallel`** (default): Codex and Claude answer independently. Add OpenCode, or pick
+any agents, with `-w`: `-w codex,claude,opencode`.
 
 ```mermaid
 flowchart LR
   B[brief] --> X[Codex] & C[Claude]
+  B -.-> O[OpenCode]
   X & C --> Y([you])
+  O -.-> Y
 ```
 
 **`twice`**: each agent answers twice, independently.
@@ -76,14 +79,15 @@ flowchart LR
 ```
 
 **`crosscheck`**: independent answers, then each agent checks the other's answer.
-You get both answers and both checks.
+You get both answers and both checks. The default pair is Codex and Claude; this is
+`-p crosscheck -w claude,opencode`.
 
 ```mermaid
 flowchart LR
-  B[brief] --> X[Codex] & C[Claude]
-  X -- answer --> CC[Claude checks]
-  C -- answer --> XC[Codex checks]
-  XC & CC --> Y([you])
+  B[brief] --> C[Claude] & O[OpenCode]
+  C -- answer --> OC[OpenCode checks]
+  O -- answer --> CC[Claude checks]
+  OC & CC --> Y([you])
 ```
 
 **`panel`**: a review where each agent takes a different focus.
@@ -94,11 +98,15 @@ flowchart LR
   X & C --> Y([you])
 ```
 
-Choose one with `-p NAME`. Choose the agents with `-w`: `-w opencode` runs OpenCode
-alone, `-w codex,claude,opencode` runs all three; OpenCode needs `opencode.model`
-([OpenCode example](examples/opencode/README.md)). Run `polybrief plan -p NAME` to see
-the stages and the maximum number of agent calls before you spend any limits. You can
-write your own pattern; see [`patterns/`](patterns/) and the [refute example](examples/refute/README.md).
+Choose one with `-p NAME`. In `parallel` and `crosscheck`, `-w` chooses the agents:
+`-w opencode` runs OpenCode alone. `twice` and `panel` name Codex and Claude in their
+`run:` lines; to use OpenCode there, copy the pattern and change those lines. OpenCode
+needs `opencode.model` ([OpenCode example](examples/opencode/README.md)).
+
+How each pattern works, what it gives, and which tasks it fits:
+[pattern guide](docs/patterns.md). Run `polybrief plan -p NAME` to see the stages and the
+maximum number of agent calls before you spend any limits. You can write your own pattern; see [`patterns/`](patterns/)
+and the [refute example](examples/refute/README.md).
 
 ## Good to know
 
@@ -126,6 +134,7 @@ reviewer instructions, pass them to `-p panel` with `-c FILE`
 ## More
 
 [Full reference: flags, settings, safety limits, tests](docs/details.md) ·
+[Pattern guide](docs/patterns.md) ·
 [Examples](examples/README.md) ·
 [Settings template](polybrief.conf.example) ·
 [Design decisions](.archcore/architecture/)

@@ -417,6 +417,9 @@ func (r *runner) parse(data string, workers, lanesKnown []string, maxSetting str
 				continue
 			}
 			if state == "settings" {
+				if strings.TrimSpace(line) == "" && len(given) == 0 && cur.run == "" {
+					continue // a Markdown formatter puts a blank line after the heading
+				}
 				if settingLine.MatchString(line) {
 					k, v, _ := strings.Cut(line[2:], ":")
 					v = strings.TrimSpace(v)

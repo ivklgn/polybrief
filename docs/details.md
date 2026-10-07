@@ -57,7 +57,7 @@ read-only profile. A pattern can also describe other analysis tasks.
 With `-b`, the change is base to working tree, including untracked files; secret-like
 names are left out, and Git history is added. A stage that inserts the brief then
 expects `FINDING`, `NOT-CHECKED`, or `NO FINDINGS`; without `-b`, any non-empty answer
-counts. Built-in patterns: `parallel` (default), `twice`, `panel`, `crosscheck`; the
+counts. Built-in patterns ([guide](patterns.md)): `parallel` (default), `twice`, `panel`, `crosscheck`; the
 former `refute` is in `examples/refute/`. Checklists stay caller-owned (`-c FILE`);
 a pattern names a checklist by its file name without `.md`.
 
