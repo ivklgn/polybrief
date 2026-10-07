@@ -15,7 +15,7 @@ Normative for the settings of the Go binary `polybrief` (@config.go): where the 
 - File: `--config FILE`, else `$POLYBRIEF_CONFIG`, else `${XDG_CONFIG_HOME:-~/.config}/polybrief/polybrief.conf`.
 - Syntax, one item per line: a `#` comment line, a blank line, a section header `[codex]`, `[claude]`, or `[opencode]`, or `key = value`. Lists are comma-separated. Values are literal after trimming; there are no quotes, and `#` after a value is part of the value. An empty value means the default.
 - A key before the first section header is a general key, or a client key in dotted form (`codex.model`). A key under a section header is a client key of that section.
-- Overrides: `-o KEY=VALUE`, repeatable, where `KEY` is a general key or `client.key`; `-w LIST` keeps only the pattern participants whose client is listed; it does not set `workers`.
+- Overrides: `-o KEY=VALUE`, repeatable, where `KEY` is a general key or `client.key`; `-w LIST` names the workers of a stage without `run:` lines and keeps only the listed clients in a stage with `run:` lines; it does not set `workers`.
 
 Client keys, in `[codex]`, `[claude]`, or `[opencode]`:
 

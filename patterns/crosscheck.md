@@ -1,8 +1,8 @@
 ---
-name: research
-description: Independent research followed by a cross-check of evidence and assumptions.
+name: crosscheck
+description: Independent answers, then each worker checks the other's answer for evidence and assumptions.
 workers: codex, claude
-max-calls: 4
+max-calls: 6
 ---
 
 ## analyze

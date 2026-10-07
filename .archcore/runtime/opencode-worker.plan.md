@@ -22,7 +22,7 @@ Add OpenCode 1.18.34 as an optional read-only worker through the existing Swarm 
 1. Add the OpenCode worker name, model, variant, and web setting to @config.go and @polybrief.conf.example.
 2. Build the isolated OpenCode command and temporary environment in @launch.go.
 3. Bridge existing OpenCode credentials into temporary data storage in @launch.go without retaining credential bytes in OUT.
-4. Add a one-worker public pattern in @patterns/opencode.md.
+4. Add a one-worker public pattern in `patterns/opencode.md` (removed 2026-10-07; replaced by `-w opencode`).
 
 ### Phase 2 — Result mapping and contracts
 

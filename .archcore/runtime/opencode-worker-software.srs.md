@@ -23,7 +23,7 @@ Specify the settings parser and launcher changes for OpenCode 1.18.34. The runne
 | SRS-OC-7 | @launch.go | WHEN JSON usage exists, the launcher MUST include cache input and reasoning output in token totals. | SYRS-OC-5 |
 | SRS-OC-8 | @launch.go | WHEN context directories exist, the launcher MUST add read access only for those paths. | SYRS-OC-6 |
 | SRS-OC-9 | @launch.go | WHEN user credentials exist, the launcher MUST make them readable in isolated OpenCode data storage. | SYRS-OC-9 |
-| SRS-OC-13 | @patterns/opencode.md | The built-in OpenCode pattern MUST name OpenCode as its sole worker. | SYRS-OC-7 |
+| SRS-OC-13 | @runner.go | `-w opencode` with a stage without `run:` lines MUST run OpenCode as the stage's sole worker. | SYRS-OC-7 |
 | SRS-OC-14 | @launch.go | WHEN a model or variant is set, the launcher MUST pass it through `--model` or `--variant`. | SYRS-OC-8 |
 | SRS-OC-15 | @launch.go | WHEN the worker finishes or the launcher is stopped, the launcher MUST remove the private HOME and XDG directories. | SYRS-OC-10 |
 | SRS-OC-16 | @launch.go | WHEN `env` names `OPENCODE_API_KEY`, `OPENCODE_ENABLE_EXA`, or `OPENCODE_ENABLE_PARALLEL`, the launcher MUST pass it. | SYRS-OC-2 |

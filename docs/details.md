@@ -43,21 +43,21 @@ polybrief yield  [--label TEXT] RUN NAME=RAISED/KEPT/ONLY...
 
 ```bash
 polybrief -C ~/proj task.md                                     # default: independent answers
-polybrief -C ~/proj -p research examples/research/brief.md     # staged cross-check
+polybrief -C ~/proj -p crosscheck examples/research/brief.md   # staged cross-check
 polybrief -C ~/repo -b main examples/code-review/brief.md      # add a Git change as context
 polybrief -C ~/repo -b main -p twice - < review.md             # two answers from each client
 polybrief -w claude -o claude.effort=max question.md           # one client, one override
-polybrief -p opencode -o opencode.model=openai/gpt-5 question.md # OpenCode only
+polybrief -w opencode -o opencode.model=openai/gpt-5 question.md # OpenCode only
 polybrief plan -p panel -c review-security.md -c review-tests.md
 ```
 
-The [examples](../examples/README.md) show research and code review with the current
+The [examples](../examples/README.md) show research, code review and OpenCode with the current
 read-only profile. A pattern can also describe other analysis tasks.
 
 With `-b`, the change is base to working tree, including untracked files; secret-like
 names are left out, and Git history is added. A stage that inserts the brief then
 expects `FINDING`, `NOT-CHECKED`, or `NO FINDINGS`; without `-b`, any non-empty answer
-counts. Built-in patterns: `parallel` (default), `twice`, `panel`, `research`, `opencode`; the
+counts. Built-in patterns: `parallel` (default), `twice`, `panel`, `crosscheck`; the
 former `refute` is in `examples/refute/`. Checklists stay caller-owned (`-c FILE`);
 a pattern names a checklist by its file name without `.md`.
 
@@ -98,8 +98,10 @@ Config: `--config`, else `POLYBRIEF_CONFIG`, else `${XDG_CONFIG_HOME:-~/.config}
 User patterns: `~/.config/polybrief/patterns/*.md` (or `POLYBRIEF_PATTERNS_DIR`).
 Log: `${XDG_STATE_HOME:-~/.local/state}/polybrief/polybrief-runs.tsv`.
 User config, user patterns, and temporary output must be outside the target tree.
-OpenCode is optional and is not in the default worker list. Use `-p opencode` or
-name it in a custom pattern. The `-w` flag filters a pattern's participants.
+OpenCode is optional and is not in the default worker list. Use `-w opencode` or
+name it in a custom pattern. In a stage without `run:` lines (`parallel`, `crosscheck`),
+`-w` names the workers; in a stage with `run:` lines (`twice`, `panel`), it only
+removes participants.
 Its `model` is required when OpenCode runs and uses `provider/model`, so a run always
 names the model that answered; `variant` is the
 provider-specific reasoning level. A stored `opencode auth login` is linked into the

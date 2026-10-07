@@ -515,6 +515,9 @@ func (r *runner) parse(data string, workers, lanesKnown []string, maxSetting str
 		runs := strings.Split(strings.TrimSuffix(s.run, "\n"), "\n")
 		if s.run == "" {
 			runs = headerWorkers
+			if len(clients) > 0 {
+				runs = clients // -w names the workers of a stage without run lines
+			}
 		}
 		names := map[string]bool{}
 		for _, rl := range runs {

@@ -26,7 +26,7 @@ Polybrief parses settings in @config.go, prepares the prompt and starts workers 
 | SYRS-OC-4 | WHILE launching OpenCode, the launcher MUST deny write and shell tools. | STRS-OC-4 |
 | SYRS-OC-5 | WHEN OpenCode emits events, the launcher MUST extract answer text, tool calls, and usage. | STRS-OC-2 |
 | SYRS-OC-6 | WHEN a context directory is configured, the launcher MUST allow OpenCode to read that directory. | STRS-OC-1 |
-| SYRS-OC-7 | WHEN the caller selects the built-in OpenCode pattern, the runner MUST start one OpenCode participant. | STRS-OC-1 |
+| SYRS-OC-7 | WHEN the caller runs `-w opencode` with a pattern whose stages have no `run:` lines, the runner MUST start one OpenCode participant per stage. | STRS-OC-1 |
 | SYRS-OC-8 | WHEN an operator sets a model or variant, the launcher MUST pass it to OpenCode. | STRS-OC-3 |
 | SYRS-OC-9 | WHEN a stored OpenCode login exists, the launcher MUST make it usable to the worker and keep its bytes out of retained artifacts. | STRS-OC-6 |
 | SYRS-OC-10 | WHILE launching OpenCode, the launcher MUST keep its private directories outside the reviewed tree. | STRS-OC-4 |

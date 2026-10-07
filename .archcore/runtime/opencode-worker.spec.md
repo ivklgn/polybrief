@@ -12,7 +12,7 @@ Normative for OpenCode as one optional read-only Polybrief worker (@launch.go, @
 
 ## Surface
 
-- Worker name: `opencode` in `workers`, `--workers`, `-w` filtering, and pattern participants; `-p opencode` selects @patterns/opencode.md.
+- Worker name: `opencode` in `workers`, `--workers`, `-w`, and pattern participants; `-w opencode` runs OpenCode alone in `parallel`.
 - Settings: `opencode.model` (provider/model, required when OpenCode runs), `opencode.variant` (provider-specific), `opencode.web` (`on|off`, default `off`).
 - Command: `opencode run --pure --format json --agent polybrief-readonly --dir DIR --print-logs --log-level WARN`, with optional model and variant.
 - Result: existing `WORKER`, `TOOLS`, `TOKENS`, answer artifact, and run-log fields. The effort field holds the OpenCode variant.
@@ -38,7 +38,7 @@ Normative for OpenCode as one optional read-only Polybrief worker (@launch.go, @
 16. WHEN OpenCode reports usage, the launcher MUST include cached input and reasoning output in token totals.
 17. WHEN `tool_log=off`, the launcher MUST still extract an answer from JSON events.
 18. WHEN the worker finishes or the launcher is stopped, the launcher MUST remove its private HOME and XDG directories.
-19. WHEN the caller selects the built-in `opencode` pattern, the runner MUST start one OpenCode participant.
+19. WHEN the caller runs `-w opencode` with a pattern whose stages have no `run:` lines, the runner MUST start one OpenCode participant per stage.
 20. WHEN `env` or `--env` names `OPENCODE_API_KEY`, `OPENCODE_ENABLE_EXA`, or `OPENCODE_ENABLE_PARALLEL`, the launcher MUST pass it to OpenCode.
 21. WHEN `env` or `--env` names any other `OPENCODE_` or `XDG_` variable, the launcher MUST withhold it from OpenCode and name it on stderr.
 22. WHILE OpenCode runs, the launcher MUST send OpenCode's own warnings and errors to the worker log.

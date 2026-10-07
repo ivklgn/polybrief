@@ -38,8 +38,8 @@ Lookup of `-p NAME`: `patterns_dir/NAME.md`, then the built-in `NAME`. A value w
 | `polybrief -C DIR -b REF BRIEF` | review: adds the change `REF`..working tree, untracked files, history |
 | `polybrief -p NAME BRIEF` | runs another pattern |
 | `polybrief -c FILE -c FILE BRIEF` | adds checklists; a pattern names them by file name without `.md` |
-| `polybrief -w claude BRIEF` | runs only the `claude` participants of the pattern |
-| `polybrief -p opencode -o opencode.model=P/M BRIEF` | runs the built-in one-worker OpenCode pattern; the model is required |
+| `polybrief -w claude BRIEF` | runs only Claude: in a stage without `run:` lines (`parallel`, `crosscheck`) `-w` names the workers; in a stage with `run:` lines it only removes participants |
+| `polybrief -w opencode -o opencode.model=P/M BRIEF` | runs OpenCode alone in `parallel`; the model is required |
 | `polybrief -o KEY=VALUE BRIEF` | overrides one setting for this run |
 | `polybrief --config FILE BRIEF` | reads another settings file |
 | `polybrief - < brief.md` | reads the brief from stdin |
@@ -173,8 +173,8 @@ Overrides for one run:
 ```bash
 polybrief -o claude.effort=max -o timeout=1800 -b main review.md
 polybrief -w claude -o log=off brief.md
-polybrief -o codex.web=on -p research brief.md
-polybrief -p opencode -o opencode.model=openai/gpt-5 brief.md
+polybrief -o codex.web=on -p crosscheck brief.md
+polybrief -w opencode -o opencode.model=openai/gpt-5 brief.md
 ```
 
 `polybrief config -o timeout=300` with the typical file:
@@ -201,7 +201,7 @@ polybrief: /Users/me/.config/polybrief/polybrief.conf:9: dotted key 'codex.model
 polybrief: no such settings file: ./ci.conf
 ```
 
-OpenCode is optional and stays outside the default worker list. Use `-p opencode` or include it in a custom pattern; `-w` only filters a pattern's participants. The `workers` setting in the settings file does not change pattern runs, and `-o workers=NAME` makes every participant use the client `NAME`. Its worker profile uses private HOME/XDG directories, disables project config and external plugins, keeps its read tool away from `.env` files (grep still searches a `.env` file that is not gitignored), and allows only read/search tools unless `opencode.web=on`; then webfetch is allowed, and websearch where OpenCode offers it. A stored OpenCode login is linked into its temporary data directory, and OpenCode refreshes an OAuth token in place through that link. An API provider key can instead be named with `env`; of the `OPENCODE_*` and `XDG_*` names, only `OPENCODE_API_KEY`, `OPENCODE_ENABLE_EXA`, and `OPENCODE_ENABLE_PARALLEL` pass; a direct launcher call names the dropped ones on stderr. This is a CLI permission profile, not an OS sandbox. The profile was checked with OpenCode 1.18.34; no real provider answer has been recorded yet.
+OpenCode is optional and stays outside the default worker list. Use `-w opencode` or include it in a custom pattern; in a stage without `run:` lines (`parallel`, `crosscheck`) `-w` names the workers; in a stage with `run:` lines it only removes participants. The `workers` setting in the settings file does not change pattern runs, and `-o workers=NAME` makes every participant use the client `NAME`. Its worker profile uses private HOME/XDG directories, disables project config and external plugins, keeps its read tool away from `.env` files (grep still searches a `.env` file that is not gitignored), and allows only read/search tools unless `opencode.web=on`; then webfetch is allowed, and websearch where OpenCode offers it. A stored OpenCode login is linked into its temporary data directory, and OpenCode refreshes an OAuth token in place through that link. An API provider key can instead be named with `env`; of the `OPENCODE_*` and `XDG_*` names, only `OPENCODE_API_KEY`, `OPENCODE_ENABLE_EXA`, and `OPENCODE_ENABLE_PARALLEL` pass; a direct launcher call names the dropped ones on stderr. This is a CLI permission profile, not an OS sandbox. The profile was checked with OpenCode 1.18.34; no real provider answer has been recorded yet.
 
 ### Checklist files
 
@@ -226,7 +226,7 @@ Check that every changed behavior has a test that fails when the behavior breaks
 name: parallel
 description: Independent workers on different models answer the same brief in parallel. The host judges.
 workers: codex, claude
-max-calls: 2
+max-calls: 3
 ---
 
 ## review
@@ -235,21 +235,6 @@ max-calls: 2
 ```
 
 With `-b`, the stage uses the review contract `^(FINDING|NOT-CHECKED|NO FINDINGS)`; without `-b`, any non-empty answer is `ok`.
-
-### Built-in pattern `opencode`
-
-```markdown
----
-name: opencode
-description: One read-only OpenCode worker answers the brief. The host judges.
-workers: opencode
-max-calls: 1
----
-
-## answer
-
-{{brief}}
-```
 
 ### Built-in pattern `twice`
 
@@ -302,14 +287,14 @@ Other reviewers cover the other lenses. Put your effort into the concerns of you
 Report a problem outside your lens only when you are sure of it and it is serious.
 ```
 
-### Built-in pattern `research`
+### Built-in pattern `crosscheck`
 
 ```markdown
 ---
-name: research
-description: Independent research followed by a cross-check of evidence and assumptions.
+name: crosscheck
+description: Independent answers, then each worker checks the other's answer for evidence and assumptions.
 workers: codex, claude
-max-calls: 4
+max-calls: 6
 ---
 
 ## analyze

@@ -27,7 +27,7 @@ Normative for the command line of the Go binary `polybrief` (@main.go): its comm
 | `-b REF` | Git base; the change is `REF` to the working tree, untracked files included | none: no Git context |
 | `-p PATTERN` | a pattern name, or a path that contains `/` or ends in `.md` | setting `pattern` |
 | `-c FILE` | checklist file, repeatable; its name is the file name without `.md` | none |
-| `-w LIST` | keeps only pattern participants whose client is listed, comma-separated: `codex`, `claude`, `opencode` | none: every pattern participant |
+| `-w LIST` | comma-separated clients `codex`, `claude`, `opencode`: the workers of a stage without `run:` lines, and a filter for the participants of a stage with `run:` lines | none: every pattern participant |
 | `-o KEY=VALUE` | one setting override, repeatable | none |
 | `--config FILE` | settings file | `$POLYBRIEF_CONFIG`, else the default path |
 | `--label TEXT` | run: prefix for worker log labels; yield: label of yield rows | pattern name for runs; none for yield |
@@ -49,7 +49,7 @@ Normative for the command line of the Go binary `polybrief` (@main.go): its comm
 5. WHEN no contract applies to a stage, the binary MUST report any non-empty successful answer as `ok`.
 6. WHEN `-c` is set, the binary MUST give a participant the checklists its `run` line names.
 7. WHEN a `run` line names no checklists, the binary MUST give that participant every `-c` checklist.
-8. WHEN `-w` is set, the binary MUST drop from every stage the participants whose client is not listed.
+8. WHEN `-w` is set, the binary MUST run the listed clients in every stage without `run:` lines, in place of the pattern's `workers`, and MUST drop from every other stage the participants whose client is not listed.
 9. WHEN `-o` sets a key, the binary MUST use that value over the settings file and the default.
 10. The binary MUST print the `OUT` line before it starts any worker.
 11. The binary MUST start each worker only with the isolation flags of the polybrief-review spec.

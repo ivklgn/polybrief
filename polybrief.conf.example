@@ -11,12 +11,13 @@
 
 # --- General ----------------------------------------------------------------------------------
 
-# Clients of a run. A pattern names its own participants; -w LIST narrows them.
+# Clients of a run. A pattern names its own participants. -w LIST names the workers of a stage
+# without run lines (parallel, crosscheck) and narrows the explicit runs of the others.
 # workers = codex, claude
-# OpenCode runs only in a pattern that names it, such as -p opencode; this file setting does not
+# OpenCode runs with -w opencode or in a pattern that names it; this file setting does not
 # change pattern runs.
 
-# The pattern of a run without -p: parallel, twice, panel, research, opencode, or one of yours.
+# The pattern of a run without -p: parallel, twice, panel, crosscheck, or one of yours.
 # pattern = parallel
 
 # Seconds per worker call. A worker over the limit gets TERM, and KILL five seconds later.

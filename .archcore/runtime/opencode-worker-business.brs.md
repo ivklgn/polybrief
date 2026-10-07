@@ -12,7 +12,7 @@ Add OpenCode as a selectable participant in Polybrief's existing read-only patte
 
 ## Operational Concept
 
-A caller chooses `opencode` through a pattern that names it, such as the built-in `opencode` pattern, or in a direct launcher call. `-w` narrows a pattern's participants and cannot add OpenCode to it; the `workers` setting in the settings file applies only to direct launcher calls. The launcher starts it beside existing workers and reports an answer, status, tool count, and token usage. A missing CLI does not stop other workers.
+A caller chooses `opencode` with `-w opencode`, through a pattern that names it, or in a direct launcher call. In a stage without `run:` lines `-w` names the workers; in a stage with `run:` lines it only removes participants. The `workers` setting in the settings file applies only to direct launcher calls. The launcher starts it beside existing workers and reports an answer, status, tool count, and token usage. A missing CLI does not stop other workers.
 
 ## Business Requirements
 

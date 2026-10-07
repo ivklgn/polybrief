@@ -42,7 +42,7 @@ polybrief -C ~/my-repo -b main examples/code-review/brief.md
 Ask a research question, with a cross-check round:
 
 ```bash
-polybrief -C ~/my-project -p research examples/research/brief.md
+polybrief -C ~/my-project -p crosscheck examples/research/brief.md
 ```
 
 A brief is just a Markdown file with the task, for example:
@@ -59,17 +59,46 @@ prompt, answer, and log. The last line, `RESULT`, says `complete`, `partial`, `s
 
 A pattern is a small Markdown file that says who answers and in which order.
 
-| Pattern    | What happens                                                    |
-| ---------- | --------------------------------------------------------------- |
-| `parallel` | Default. Codex and Claude answer independently.                 |
-| `twice`    | Each agent answers twice, independently.                        |
-| `research` | Independent answers, then each agent checks the other's answer. |
-| `panel`    | Review where each agent takes a different focus.                |
-| `opencode` | OpenCode only.                                                  |
+**`parallel`** (default): Codex and Claude answer independently.
 
-Choose one with `-p NAME`. Run `polybrief plan -p NAME` to see the stages and the
-maximum number of agent calls before you spend any limits. You can write your own
-pattern; see [`patterns/`](patterns/) and the [refute example](examples/refute/README.md).
+```mermaid
+flowchart LR
+  B[brief] --> X[Codex] & C[Claude]
+  X & C --> Y([you])
+```
+
+**`twice`**: each agent answers twice, independently.
+
+```mermaid
+flowchart LR
+  B[brief] --> X1[Codex 1] & X2[Codex 2] & C1[Claude 1] & C2[Claude 2]
+  X1 & X2 & C1 & C2 --> Y([you])
+```
+
+**`crosscheck`**: independent answers, then each agent checks the other's answer.
+You get both answers and both checks.
+
+```mermaid
+flowchart LR
+  B[brief] --> X[Codex] & C[Claude]
+  X -- answer --> CC[Claude checks]
+  C -- answer --> XC[Codex checks]
+  XC & CC --> Y([you])
+```
+
+**`panel`**: a review where each agent takes a different focus.
+
+```mermaid
+flowchart LR
+  B[brief] --> X["Codex<br/>security + tests"] & C["Claude<br/>design"]
+  X & C --> Y([you])
+```
+
+Choose one with `-p NAME`. Choose the agents with `-w`: `-w opencode` runs OpenCode
+alone, `-w codex,claude,opencode` runs all three; OpenCode needs `opencode.model`
+([OpenCode example](examples/opencode/README.md)). Run `polybrief plan -p NAME` to see
+the stages and the maximum number of agent calls before you spend any limits. You can
+write your own pattern; see [`patterns/`](patterns/) and the [refute example](examples/refute/README.md).
 
 ## Good to know
 
@@ -82,7 +111,17 @@ pattern; see [`patterns/`](patterns/) and the [refute example](examples/refute/R
 ## Use it from your agent
 
 polybrief is a plain shell command, so a host agent (Claude Code, Codex, and others)
-can call it. Run it in the background and read the answers from the `OUT` folder.
+can call it. For example, a code review skill can ask for a second opinion:
+
+```bash
+polybrief -b "$(git merge-base HEAD origin/main)" --label codereview examples/code-review/brief.md
+```
+
+The skill runs this in the background, reads each answer from `<OUT>/review/1/<worker>.md`,
+and checks every `FINDING` against the code before it reports it. A ready skill to copy:
+[examples/code-review/SKILL.md](examples/code-review/SKILL.md). If your skill already has
+reviewer instructions, pass them to `-p panel` with `-c FILE`
+([how](examples/code-review/README.md#from-a-code-review-skill)).
 
 ## More
 

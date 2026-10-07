@@ -16,6 +16,8 @@ Use OpenCode 1.18.34 `run --pure` with temporary HOME and XDG directories, proje
 
 The worker ships with a built-in one-worker pattern `opencode` and an `[opencode]` settings section. This extends the built-in pattern set and the client sections fixed in @.archcore/architecture/go-runtime.adr.md; OpenCode is not added to `parallel` or the default `workers`, because no real provider answer has been recorded yet.
 
+Changed 2026-10-07: the built-in `opencode` pattern was removed; `-w opencode` selects OpenCode in `parallel` and `crosscheck`. OpenCode is still not in the default `workers`.
+
 ## Alternatives Considered
 
 1. Inherit the user's OpenCode configuration — rejected because merged plugins, MCP entries, and project instructions would enter a Polybrief worker.

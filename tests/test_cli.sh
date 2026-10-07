@@ -57,10 +57,10 @@ grep -q '^WORKER	review	1	codex	ok	' <<< "$out" || fail "a run must report the w
 grep -q 'Caller audit method.' <<< "$out" && grep -q 'compare alternatives' <<< "$out" || fail "brief and checklist must reach the worker"
 ! grep -q '## The change' <<< "$out" || fail "no Git context without -b"
 
-# the research pattern hands one stage's answers to the next
-out=$(polybrief -C "$scratch/work" -p research --config "$scratch/config" - < "$scratch/brief")
+# the crosscheck pattern hands one stage's answers to the next
+out=$(polybrief -C "$scratch/work" -p crosscheck --config "$scratch/config" - < "$scratch/brief")
 [ "$(grep -c '^WORKER' <<< "$out")" = 4 ] && grep -q 'stage="critique"' <<< "$out" && grep -q '<input-.*from="claude"' <<< "$out" \
-  || fail "research must run two stages: $out"
+  || fail "crosscheck must run two stages: $out"
 
 # -o overrides a setting; config shows it with its source
 polybrief -C "$scratch/work" -w claude -o claude.effort=max --config "$scratch/config" "$scratch/brief" >/dev/null
@@ -82,21 +82,23 @@ grep -q '	yield	R1	parallel	codex	' "$scratch/runs.tsv" || fail "yield must writ
 polybrief -C "$scratch/work" -p parallel -w codex --label review-go --config "$scratch/logconf" "$scratch/brief" >/dev/null
 grep -q 'review-go/review/1/codex' "$scratch/runs.tsv" || fail "run label must reach the worker log"
 
-# OpenCode can run through a built-in pattern without adding it to the default pair.
-out=$(polybrief -C "$scratch/work" -p opencode -o opencode.model=openai/gpt-5 --config "$scratch/config" "$scratch/brief")
-grep -q '^WORKER[[:space:]]answer[[:space:]]1[[:space:]]opencode[[:space:]]ok[[:space:]]' <<< "$out" \
+# -w names the workers of a stage without run lines, so OpenCode needs no pattern of its own.
+out=$(polybrief -C "$scratch/work" -w opencode -o opencode.model=openai/gpt-5 --config "$scratch/config" "$scratch/brief")
+grep -q '^WORKER[[:space:]]review[[:space:]]1[[:space:]]opencode[[:space:]]ok[[:space:]]' <<< "$out" \
   && grep -q 'OpenCode public run' <<< "$out" && grep -qx -- '--model' "$scratch/opencode.args" \
-  || fail "the public OpenCode pattern must run: $out"
-grep -q '^PLAN[[:space:]]answer[[:space:]]opencode[[:space:]]1$' <<< "$(polybrief plan -p opencode)" \
-  && grep -q '^PATTERN[[:space:]]opencode[[:space:]]' <<< "$(polybrief patterns)" || fail "the OpenCode pattern must be listed and plannable"
+  || fail "-w opencode must run OpenCode alone: $out"
+plan=$(polybrief plan -w codex,opencode)
+grep -q '^PLAN[[:space:]]review[[:space:]]codex,opencode[[:space:]]1$' <<< "$plan" || fail "-w must name the workers of parallel: $plan"
+grep -q '^CALLS[[:space:]]3[[:space:]]3$' <<< "$(polybrief plan -w codex,claude,opencode)" || fail "parallel must allow all three workers"
+grep -q '^PLAN[[:space:]]review[[:space:]]codex-1,codex-2[[:space:]]1$' <<< "$(polybrief plan -p twice -w codex)" || fail "-w must still filter explicit runs"
 
 # refused before any worker: exit 2
 refused() { local rc=0; "$@" >/dev/null 2>&1 || rc=$?; [ "$rc" = 2 ]; }
 # an OpenCode run without a model is refused before any worker, OpenCode's or another, starts
 printf -- '---\nname: mixed\ndescription: codex and opencode\nworkers: codex, opencode\n---\n\n## review\n\n{{brief}}\n' > "$scratch/mixed.md"
-for p in opencode "$scratch/mixed.md"; do
+for p in "-w opencode" "-p $scratch/mixed.md"; do
   rm -f "$scratch/opencode.args" "$HOME/codex.args"
-  rc=0; out=$(polybrief -C "$scratch/work" -p "$p" --config "$scratch/config" "$scratch/brief" 2>"$scratch/err") || rc=$?
+  rc=0; out=$(polybrief -C "$scratch/work" $p --config "$scratch/config" "$scratch/brief" 2>"$scratch/err") || rc=$?
   [ "$rc" = 2 ] && grep -q 'opencode.model is required' "$scratch/err" && ! grep -q '^OUT' <<< "$out" \
     && [ ! -e "$scratch/opencode.args" ] && [ ! -e "$HOME/codex.args" ] \
     || fail "$p without opencode.model must be refused before the run starts: rc=$rc $out $(cat "$scratch/err")"
@@ -115,5 +117,5 @@ refused polybrief config --config "$scratch/badsec" || fail "unknown section"
 
 # the binary works from any place, without a checkout
 cp "$scratch/bin/polybrief" "$scratch/relocated"
-[ "$("$scratch/relocated" --version)" = "$version" ] && "$scratch/relocated" plan -p research >/dev/null || fail "relocated binary"
+[ "$("$scratch/relocated" --version)" = "$version" ] && "$scratch/relocated" plan -p crosscheck >/dev/null || fail "relocated binary"
 echo 'ok: standalone CLI checks passed'
