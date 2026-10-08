@@ -100,7 +100,7 @@ Beyond the plan:
 - The launcher's self-check fails when any one of tasks 1 to 16 is reverted.
 - `swarm_pattern.sh --check` prints the plan of each shipped pattern and starts no worker.
 - The runner's self-check passes with a fake launcher and covers every failure rule of both specs.
-- A search of `swarm_pattern.sh` finds no name of a worker CLI and no flag of one.
+- A search of `swarm_pattern.sh` finds no flag of a worker CLI. It knows worker names only to check that OpenCode has `opencode.model` before any call (@runner.go).
 - A run of `refute` with real workers ends with `GATE` and `WORKER` lines, and leaves the reviewed tree unchanged.
 - The run log holds one line per worker for every run of Phase 5.
 - The research document of task 44 states, for each pattern, the kept findings, the seconds and the calls.

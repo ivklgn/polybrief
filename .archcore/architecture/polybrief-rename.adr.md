@@ -16,7 +16,7 @@ On 2026-10-04 the project had no public GitHub repository, no tags and no releas
 The project, binary, Go module, settings and state namespaces are named `polybrief`: one brief, several workers.
 
 - Binary and module: `polybrief`, `github.com/ivklgn/polybrief`; release archives `polybrief_<os>_<arch>`.
-- Settings: `~/.config/polybrief/polybrief.conf`, `~/.config/polybrief/patterns/`; log `~/.local/state/polybrief/polybrief-runs.tsv`.
+- Settings: `~/.config/polybrief/polybrief.conf`, `~/.config/polybrief/patterns/`; log `~/.local/state/polybrief/polybrief-runs.tsv`. Note: the settings paths `~/.config/polybrief/...` no longer exist; superseded by @.archcore/architecture/arguments-only-runtime.adr.md.
 - Environment: every `SWARM_*` variable became `POLYBRIEF_*`; the OpenCode agent is `polybrief-readonly`; temporary directories use the `polybrief-` prefix.
 - Files: Archcore documents `swarm-*.md` became `polybrief-*.md`, with relations updated; the shell checks became `tests/test_review.sh` and `tests/test_pattern.sh`, next to `tests/test_cli.sh`.
 - Records of past work keep their prose: imported ivklgn-kit research, finished plans, accepted or rejected decisions, the superseded Bash CLI spec, and the extraction provenance (now in @.archcore/architecture/standalone-runtime.adr.md). The raw run data under `research/` and the ported Russian guide `docs/code-review.md` were removed from the tree on 2026-10-04 (last present in commit `274ed53`). Only their links to renamed files changed. There, `swarm` names the tool or the kit's `/codereview` depth as it was called at the time.

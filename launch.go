@@ -6,6 +6,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -29,10 +30,10 @@ import (
 const reviewContract = `^(FINDING|NOT-CHECKED|NO FINDINGS)`
 
 type launchArgs struct {
-	mode, dir, base, brief, lanes, agents, config, label, runID, yieldRun string
-	prepared, prepareFile, checkFile                                      string
-	env, ctx, yields, sets                                                []string
-	flags                                                                 map[string]string
+	mode, dir, base, brief, lanes, agents, label, runID, yieldRun string
+	prepared, prepareFile, checkFile                              string
+	env, ctx, yields, sets                                        []string
+	flags                                                         map[string]string
 }
 
 func launchMain(args []string) int {
@@ -46,7 +47,7 @@ func launchMain(args []string) int {
 	for i := 0; i < len(args); i++ {
 		switch f := args[i]; f {
 		case "--dir", "--base", "--brief", "--lanes", "--workers", "--timeout", "--expect", "--env",
-			"--context-dir", "--label", "--run-id", "--config", "--agents-dir", "--set",
+			"--context-dir", "--label", "--run-id", "--agents-dir", "--set",
 			"--prepared-context", "--prepare-context", "--check-context":
 			v := need(i)
 			i++
@@ -69,8 +70,6 @@ func launchMain(args []string) int {
 				a.label = v
 			case "--run-id":
 				a.runID = v
-			case "--config":
-				a.config = v
 			case "--agents-dir":
 				a.agents = v
 			case "--set":
@@ -104,7 +103,6 @@ func launchMain(args []string) int {
 	for _, kv := range a.sets {
 		s.setFlag(kv)
 	}
-	s.load(a.config)
 	s.validate()
 	passEnv := append(items(s.get("env")), a.env...)
 	for _, v := range passEnv {
@@ -133,7 +131,6 @@ func launchMain(args []string) int {
 
 	switch a.mode {
 	case "show":
-		fmt.Printf("CONFIG_FILE\t%s\t%s\n", s.file, s.state)
 		for _, k := range settingKeys {
 			fmt.Printf("CONFIG\t%s\t%s\t%s\n", k, s.get(k), s.source(k))
 		}
@@ -318,9 +315,6 @@ func reviewPreflight(s *settings, named string) string {
 		die("cannot resolve directory: " + err.Error())
 	}
 	rdir := physical(dir)
-	if s.state == "loaded" && (inside(physical(filepath.Dir(s.file)), rdir) || inside(physical(s.file), rdir)) {
-		die("the settings file lies inside the reviewed tree: " + s.file)
-	}
 	tmpRoot := os.TempDir()
 	tmpInfo, err := os.Stat(tmpRoot)
 	if err != nil || !tmpInfo.IsDir() {
@@ -332,14 +326,19 @@ func reviewPreflight(s *settings, named string) string {
 	return dir
 }
 
+var secretNames = []string{".env", ".env.*", ".envrc", "*.pem", "*.key", "*.p12", "*.pfx", "id_rsa*", "id_ed25519*", "id_ecdsa*", "id_dsa*"}
+
+// secretLike matches the file name, or the whole path for caller patterns, ignoring case.
 func secretLike(path string, patterns []string) bool {
+	path = strings.ToLower(path)
 	name := filepath.Base(path)
-	for _, pattern := range []string{".env", ".env.*", ".envrc", "*.pem", "*.key", "*.p12", "*.pfx", "id_rsa*", "id_ed25519*", "id_ecdsa*", "id_dsa*"} {
+	for _, pattern := range secretNames {
 		if ok, _ := filepath.Match(pattern, name); ok {
 			return true
 		}
 	}
 	for _, pattern := range patterns {
+		pattern = strings.ToLower(pattern)
 		if ok, _ := filepath.Match(pattern, name); ok {
 			return true
 		}
@@ -528,7 +527,14 @@ func showName(s string) string {
 }
 
 // inside reports whether path p lies inside directory root (both physical).
-func inside(p, root string) bool { return strings.HasPrefix(p+"/", root+"/") }
+// inside reports whether p is root or lies under it; both are physical absolute paths.
+func inside(p, root string) bool {
+	if runtime.GOOS == "windows" {
+		p, root = strings.ToLower(p), strings.ToLower(root)
+	}
+	rel, err := filepath.Rel(root, p)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
 
 func physical(p string) string {
 	r, err := filepath.EvalSymlinks(p)
@@ -809,8 +815,10 @@ func launchRun(s *settings, a launchArgs, passEnv, ctx []string) int {
 	timeout := time.Duration(atoi(s.get("timeout"))) * time.Second
 	var mu sync.Mutex
 	running := map[int]bool{}
+	var stopping atomic.Bool
 	go func() {
 		<-sigs
+		stopping.Store(true)
 		var stops sync.WaitGroup
 		mu.Lock()
 		for pid := range running {
@@ -845,9 +853,11 @@ func launchRun(s *settings, a launchArgs, passEnv, ctx []string) int {
 			if name == "opencode" {
 				workerEnv = ocEnv
 			}
-			vc := exec.Command(name, "--version")
+			vctx, vcancel := context.WithTimeout(context.Background(), 15*time.Second)
+			vc := exec.CommandContext(vctx, name, "--version")
 			vc.Env = workerEnv
 			v, _ := vc.Output()
+			vcancel()
 			w.version = strings.ReplaceAll(strings.SplitN(string(v), "\n", 2)[0], "\t", "")
 			c := exec.Command(cmds[name][0], cmds[name][1:]...)
 			c.Env = workerEnv
@@ -882,12 +892,16 @@ func launchRun(s *settings, a launchArgs, passEnv, ctx []string) int {
 				mu.Lock()
 				running[pid] = true
 				mu.Unlock()
+				killed := make(chan struct{})
 				timer := time.AfterFunc(timeout, func() {
+					defer close(killed)
 					w.timedOut.Store(true)
 					stopGroup(pid)
 				})
 				err := c.Wait()
-				timer.Stop()
+				if !timer.Stop() {
+					<-killed // the TERM-then-KILL escalation ends before the worker is reported
+				}
 				mu.Lock()
 				delete(running, pid)
 				mu.Unlock()
@@ -904,6 +918,9 @@ func launchRun(s *settings, a launchArgs, passEnv, ctx []string) int {
 		}()
 	}
 	wg.Wait()
+	if stopping.Load() {
+		select {} // the signal handler stops every group, then exits 143
+	}
 	ocCleanup()
 	for _, w := range results {
 		if w.err != nil {
@@ -973,10 +990,14 @@ func launchRun(s *settings, a launchArgs, passEnv, ctx []string) int {
 		}
 		if w.status == "missing" {
 			fmt.Printf("WORKER\t%s\tmissing\t0\t%s\t\t\t\n", w.name, md)
+			fmt.Fprintf(os.Stderr, "polybrief: %s is not on PATH; the run continues without it\n", w.name)
 			logRow(s, "call", runID, a.label, w.name, "", "", "", "missing", "0", "", "", "", "", "")
 			continue
 		}
 		fmt.Printf("WORKER\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n", w.name, w.status, w.secs, md, model(w.name), effort(w.name), w.version)
+		if w.status != "ok" {
+			fmt.Fprintf(os.Stderr, "polybrief: %s answer is %s (exit %d); its log: %s\n", w.name, w.status, w.rc, filepath.Join(out, w.name+".log"))
+		}
 		tin, tout := "", ""
 		if toolLog {
 			if i, o, ok := tokensOf(w.name, w.raw); ok {

@@ -16,9 +16,10 @@ max-calls: 4
 
 ### Your lens: {{role}}
 
-Other reviewers cover the other lenses. Put your effort into the concerns of your lens:
+Other reviewers cover the other lenses. Your lens overrides the focus named in the brief above.
+Put your effort into the concerns of your lens:
 
-- risk: 2 Correctness on failure, empty and concurrent paths; 6 Security and data safety; 8 Tests.
-- design: 1 Intent, 3 Design and fit, 4 Contracts, 5 Completeness, 10 Rollout, and the stack checklists.
+- risk: correctness on failure, empty and concurrent paths; security and data safety; tests that would fail if the change broke. Use the supplied checklists.
+- design: the intent of the change; fit with the surrounding code and its idioms; contracts and interfaces; completeness; rollout and migration. Any checklist you received is context, not your lens.
 
 Report a problem outside your lens only when you are sure of it and it is serious.

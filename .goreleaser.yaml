@@ -13,6 +13,9 @@ builds:
 archives:
   - formats: [tar.gz]
     name_template: "polybrief_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
     format_overrides:
       - goos: windows
         formats: [zip]

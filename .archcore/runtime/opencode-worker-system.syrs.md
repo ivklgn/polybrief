@@ -1,6 +1,6 @@
 ---
 title: "OpenCode worker system requirements"
-status: draft
+status: accepted
 tags:
   - "security"
   - "polybrief"

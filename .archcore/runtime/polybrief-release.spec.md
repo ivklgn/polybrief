@@ -1,6 +1,6 @@
 ---
 title: "polybrief release artifacts and version"
-status: draft
+status: accepted
 tags:
   - "spec"
   - "polybrief"
@@ -12,11 +12,12 @@ Normative for what one polybrief release publishes and for the version the binar
 
 ## Surface
 
-- Trigger: a pushed tag `vMAJOR.MINOR.PATCH` without a pre-release suffix; workflow @.github/workflows/release.yml (new).
-- Build configuration: @.goreleaser.yaml (new); CI checks: @.github/workflows/ci.yml (new).
+- Trigger: a pushed tag `vMAJOR.MINOR.PATCH` without a pre-release suffix; workflow @.github/workflows/release.yml.
+- Build configuration: @.goreleaser.yaml; CI checks: @.github/workflows/ci.yml.
 - Targets: `linux`, `darwin`, `windows` × `amd64`, `arm64`.
 - Assets: `polybrief_<os>_<arch>.tar.gz` for linux and darwin, `polybrief_windows_<arch>.zip`, and `checksums.txt` with one `<sha256>  <asset>` line per archive.
-- Archive content: the binary `polybrief` (`polybrief.exe` on windows) at the archive root, plus `README.md`.
+- Archive content: the binary `polybrief` (`polybrief.exe` on Windows) at the archive root, plus `README.md` and `LICENSE`. Install scripts place only the binary.
+- Install scripts: @install.sh (macOS, Linux) and @install.ps1 (Windows) at the repository root. Each downloads the archive of a release for the host, verifies its sha256 against `checksums.txt`, and places the binary. `POLYBRIEF_VERSION` selects the release (default: latest); `POLYBRIEF_INSTALL_DIR` selects the target directory.
 - URLs: `https://github.com/ivklgn/polybrief/releases/download/vX.Y.Z/<asset>` and `https://github.com/ivklgn/polybrief/releases/latest/download/<asset>`.
 - Version output: `polybrief --version` prints `polybrief <version>` (@main.go).
 - Source install: `go install github.com/ivklgn/polybrief@vX.Y.Z`.
@@ -37,7 +38,7 @@ Normative for what one polybrief release publishes and for the version the binar
 ## Constraints & Invariants
 
 - Invariant: a published tag is never moved or reused; a fix ships as the next version.
-- Invariant: an archive needs no other file to run, because the built-in patterns are embedded (@runner.go).
+- Invariant: the binary embeds its built-in patterns and needs no installed polybrief settings or home files. A caller supplies a brief for each run.
 - Constraint: the module path stays `github.com/ivklgn/polybrief`; `go install` and the asset URLs depend on it.
 - Constraint: the release tooling adds no `require` block to @go.mod (standard-library rule in @AGENTS.md).
 - Constraint: @README.md labels the windows assets experimental until the Windows isolation check passes.

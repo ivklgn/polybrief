@@ -8,14 +8,13 @@ S="${POLYBRIEF_BIN:-$T/polybrief}"; [ -n "${POLYBRIEF_BIN:-}" ] || (cd "$ROOT" &
 
 # The fake CLIs take their orders from files in a HOME of their own.
 export HOME="$T/home" TMPDIR="$T/tmp" CODEX_HOME="$T/home/.codex" XDG_CONFIG_HOME="$T/home/.config" XDG_DATA_HOME="$T/home/.data" XDG_STATE_HOME="$T/home/.state"
-unset POLYBRIEF_CONFIG POLYBRIEF_PATTERNS_DIR || true
 A="$T/agents"; mkdir -p "$A"
 printf -- '---\nname: review-design\n---\nDesign checklist fixture.\n' > "$A/review-design.md"
 printf -- '---\nname: review-tests\n---\nTests checklist fixture.\n' > "$A/review-tests.md"
-F="$HOME/fake"; mkdir -p "$F" "$TMPDIR" "$CODEX_HOME" "$XDG_CONFIG_HOME/polybrief"
+F="$HOME/fake"; mkdir -p "$F" "$TMPDIR" "$CODEX_HOME"
 mkdir -p "$XDG_DATA_HOME/opencode"
 printf '{"test":"credential"}\n' > "$XDG_DATA_HOME/opencode/auth.json"
-CONF="$XDG_CONFIG_HOME/polybrief/polybrief.conf" LOG="$XDG_STATE_HOME/polybrief/polybrief-runs.tsv"
+LOG="$XDG_STATE_HOME/polybrief/polybrief-runs.tsv"
 toml() { printf 'model = "test-model"\nmodel_reasoning_effort = "high"\n\n[profiles.x]\nmodel = "other"\n' > "$CODEX_HOME/config.toml"; }
 toml
 g() { git -c user.email=t@t -c user.name=t -c init.defaultBranch=main "$@"; }
@@ -27,7 +26,7 @@ has() { grep -qxF -- "$2" <<< "$1"; }
 arg() { grep -qxF -- "$2" "$F/$1.args"; }
 gone() { ! kill -0 "$(cat "$F/sleep.pid")" 2>/dev/null; }
 refused() { local rc=0 out; out=$("$@" 2>"$T/err") || rc=$?; [ "$rc" = 2 ] && [ -z "$(printf '%s\n' "$out" | grep '^WORKER')" ]; }
-reset() { rm -f "$F"/*.fail "$F"/*.partial "$F"/*.answer "$F"/*.sleep "$F"/*.empty "$F"/*.ignoreterm "$F/sleep.pid" "$CONF"; }
+reset() { rm -f "$F"/*.fail "$F"/*.partial "$F"/*.answer "$F"/*.sleep "$F"/*.empty "$F"/*.ignoreterm "$F/sleep.pid"; }
 
 # Each fake refuses to run without its isolation flags. It records its arguments and the names of
 # its environment variables, and answers with what it sees and its prompt.
@@ -211,50 +210,31 @@ out=$(run --workers codex)
 has "$out" "codex model: none, home: $CODEX_HOME" || fail "a table's model must not be used: $out"
 toml
 
-# settings file: every worker setting, and flags win over it
-cat > "$CONF" <<'EOF'
-# test settings
-codex.model = conf-model
-codex.effort = low
-codex.web = on
-claude.model = sonnet
-claude.effort = max
-claude.web = on
-timeout = 77
-secret_names = *.secret
-history = off
-log = off
-EOF
+# command arguments set worker settings for one run
+overrides=(--set codex.model=conf-model --set codex.effort=low --set codex.web=on
+  --set claude.model=sonnet --set claude.effort=max --set claude.web=on
+  --set timeout=77 --set 'secret_names=*.secret' --set history=off --set log=off)
 echo 'hidden' > notes.secret
-out=$(run)
-has "$out" "codex model: conf-model, home: $CODEX_HOME" && arg codex 'model_reasoning_effort="low"' || fail "codex model and effort from settings: $out"
+out=$(run "${overrides[@]}")
+has "$out" "codex model: conf-model, home: $CODEX_HOME" && arg codex 'model_reasoning_effort="low"' || fail "codex model and effort from arguments: $out"
 ! arg codex web_search=disabled || fail "codex.web = on must allow web search"
 arg claude sonnet && arg claude max && arg claude Read,Grep,Glob,WebFetch,WebSearch || fail "claude model, effort and web from settings"
 has "$out" "$(printf 'SKIPPED\tnotes.secret')" || fail "secret_names must add names: $out"
 ! grep -q '^Commits of the change:$' "$(key "$out" OUT)/prompt.md" || fail "history = off must drop the history"
-rows=$(wc -l < "$LOG"); run --workers claude >/dev/null; [ "$(wc -l < "$LOG")" = "$rows" ] || fail "log = off must not write"
-sc=$("$S" launch --show-config)
-has "$sc" "$(printf 'CONFIG\ttimeout\t77\tfile:8')" && has "$sc" "$(printf 'CONFIG_FILE\t%s\tloaded' "$CONF")" \
-  && has "$sc" "$(printf 'KNOWN_WORKERS\tcodex claude opencode')" || fail "--show-config must show values and sources: $sc"
+rows=$(wc -l < "$LOG"); run --workers claude --set log=off >/dev/null; [ "$(wc -l < "$LOG")" = "$rows" ] || fail "log = off must not write"
+sc=$("$S" launch --show-config "${overrides[@]}")
+has "$sc" "$(printf 'CONFIG\ttimeout\t77\tflag')" && has "$sc" "$(printf 'KNOWN_WORKERS\tcodex claude opencode')" || fail "--show-config must show values and sources: $sc"
 sc=$("$S" launch --show-config --timeout 5)
-has "$sc" "$(printf 'CONFIG\ttimeout\t5\tflag')" || fail "a flag must win over the settings file: $sc"
-sc=$(POLYBRIEF_PATTERNS_DIR="$T/env-patterns" "$S" launch --show-config)
-has "$sc" "$(printf 'CONFIG\tpatterns_dir\t%s\tenvironment' "$T/env-patterns")" || fail "environment must override the pattern-directory default"
-printf 'patterns_dir = %s\n' "$T/file-patterns" >> "$CONF"
-sc=$(POLYBRIEF_PATTERNS_DIR="$T/env-patterns" "$S" launch --show-config)
-awk -F'\t' -v expected="$T/file-patterns" '$1=="CONFIG" && $2=="patterns_dir" && $3==expected && $4 ~ /^file:/ {found=1} END{exit !found}' <<< "$sc" \
-  || fail "file must override the environment default"
-printf 'timeoutt = 5\n' > "$CONF"; refused run || fail "an unknown setting must be refused"
-grep -q 'polybrief.conf:1: unknown setting' "$T/err" || fail "the error must name the line"
-printf 'codex.web = maybe\n' > "$CONF"; refused run || fail "a bad value must be refused"
-printf 'codex.model = a b\n' > "$CONF"; refused run || fail "a model with a space must be refused"
-printf 'opencode.model = no-provider\n' > "$CONF"; refused run || fail "an OpenCode model needs provider/model"
-printf 'opencode.variant = a b\n' > "$CONF"; refused run || fail "an OpenCode variant with a space must be refused"
-printf 'opencode.web = maybe\n' > "$CONF"; refused run || fail "a bad opencode.web value must be refused"
-rm "$CONF"; refused run --workers opencode && grep -q 'opencode.model is required' "$T/err" || fail "an OpenCode run without a model must be refused"
-printf 'timeout = 1\n' > "$T/repo/inside.conf"
-refused run --config "$T/repo/inside.conf" || fail "a settings file inside the reviewed tree must be refused"
-rm "$T/repo/inside.conf" notes.secret; reset
+has "$sc" "$(printf 'CONFIG\ttimeout\t5\tflag')" || fail "a flag must set timeout: $sc"
+refused run --set timeoutt=5 || fail "an unknown setting must be refused"
+refused run --set codex.web=maybe || fail "a bad value must be refused"
+refused run --set 'codex.model=a b' || fail "a model with a space must be refused"
+refused run --set opencode.model=no-provider || fail "an OpenCode model needs provider/model"
+refused run --set 'opencode.variant=a b' || fail "an OpenCode variant with a space must be refused"
+refused run --set opencode.web=maybe || fail "a bad opencode.web value must be refused"
+refused run --workers opencode && grep -q 'opencode.model is required' "$T/err" || fail "an OpenCode run without a model must be refused"
+refused run --config "$T/inside.conf" || fail "--config is no longer accepted"
+rm notes.secret; reset
 
 # lanes: the runtime's agent files reach the prompt as written, without frontmatter, before the change
 first=$(awk 'NR==1 && $0=="---"{fm=1; next} fm && $0=="---"{fm=0; next} !fm && NF{print; exit}' "$A/review-design.md")
@@ -410,11 +390,10 @@ done
 reset
 
 # tool_log = off: no JSON modes and no TOOLS lines
-printf 'tool_log = off\nlog = off\n' > "$CONF"
-out=$(run)
+out=$(run --set tool_log=off --set log=off)
 ! arg codex --json && ! arg claude stream-json && ! printf '%s\n' "$out" | grep -q '^TOOLS\|^TOKENS' || fail "tool_log = off must use text output: $out"
 [ "$(row "$out" claude)" = ok ] || fail "claude text output must be the answer: $out"
-out=$(run --workers opencode $OCM)
+out=$(run --workers opencode $OCM --set tool_log=off --set log=off)
 [ "$(row "$out" opencode)" = ok ] && arg opencode json \
   && ! printf '%s\n' "$out" | grep -q '^TOOLS\|^TOKENS' || fail "OpenCode must extract JSON answers with tool_log off: $out"
 reset
@@ -440,8 +419,11 @@ rmdir "$T/repo/tmp"
 # a worker that is not installed
 rm "$bin/claude"
 ! command -v claude >/dev/null 2>&1 || fail "the self-check must not reach a real claude"
-out=$(run)
+out=$(run 2>"$T/err")
 [ "$(row "$out" claude)" = missing ] && [ "$(row "$out" codex)" = ok ] || fail "missing CLI must be reported: $out"
+grep -q 'claude is not on PATH' "$T/err" || fail "a missing CLI must be named on stderr: $(cat "$T/err")"
+touch "$F/codex.fail"; out=$(run --workers codex 2>"$T/err") || true; rm "$F/codex.fail"
+[ "$(row "$out" codex)" = failed ] && grep -q 'codex answer is failed (exit 3); its log: .*codex.log' "$T/err" || fail "a failed worker must point to its log: $(cat "$T/err")"
 rm "$bin/opencode"
 out=$(run --workers codex,opencode $OCM)
 [ "$(row "$out" opencode)" = missing ] && [ "$(row "$out" codex)" = ok ] || fail "a missing OpenCode CLI must be reported: $out"

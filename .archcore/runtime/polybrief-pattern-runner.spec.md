@@ -1,6 +1,6 @@
 ---
 title: "Polybrief pattern runner (polybrief runner) contract"
-status: draft
+status: accepted
 tags:
   - "polybrief"
   - "spec"
@@ -8,16 +8,16 @@ tags:
 
 ## Purpose & Scope
 
-Normative for the pattern runner of the polybrief binary (@runner.go, internal command `polybrief runner`): how the runner finds and walks a pattern file, what it sends to each participant, and what it prints. Dependents: terminal users and host agents, including the `/codereview` consumer. Out of scope: the format of a pattern (@.archcore/runtime/polybrief-pattern-file.spec.md), the start of a worker and the settings file (@.archcore/runtime/polybrief-review.spec.md), the content of the brief, and the caller's evaluation of results. The decision is in @.archcore/architecture/polybrief-pattern-runner.adr.md.
+Normative for the pattern runner of the polybrief binary (@runner.go, internal command `polybrief runner`): how the runner finds and walks a pattern file, what it sends to each participant, and what it prints. Dependents: terminal users and host agents, including the `/codereview` consumer. Out of scope: the format of a pattern (@.archcore/runtime/polybrief-pattern-file.spec.md), the start of a worker and runtime settings (@.archcore/runtime/polybrief-review.spec.md), the content of the brief, and the caller's evaluation of results. The decision is in @.archcore/architecture/polybrief-pattern-runner.adr.md.
 
 ## Surface
 
-- Run: `polybrief runner --dir DIR [--base REF] --brief FILE|- [--pattern NAME|FILE] [--agents-dir DIR] [--lanes A,B] [--clients A,B] [--timeout SEC] [--max-calls N] [--set KEY=VALUE]… [--config FILE]`. Callers use the public command line (polybrief-cli spec); `--clients` carries `-w`, `--set` carries `-o`.
-- `--check [--pattern NAME|FILE] [--agents-dir DIR] [--lanes A,B]`: reads the pattern, prints `PLAN` and `CALLS`, starts no worker.
-- `--list`: one `PATTERN<TAB>name<TAB>source<TAB>file<TAB>description` line per pattern.
-- Pattern lookup: a value with `/` or ending in `.md` is a file; a name is looked up in the setting `patterns_dir`, then in `patterns/` of the runtime. Without `--pattern`: the setting `pattern`.
-- Call limit: `--max-calls`, else the pattern's `max-calls`, else the setting `max_calls`; at most 40.
-- Settings, workers, and caller-owned lanes come from `polybrief launch --show-config --agents-dir DIR`. The launcher is the binary itself; the environment variable `POLYBRIEF_LAUNCHER` replaces it in the self-checks.
+- Run: `polybrief runner --dir DIR [--base REF] --brief FILE|- [--pattern NAME|FILE] [--agents-dir DIR] [--lanes A,B] [--clients A,B] [--timeout SEC] [--max-calls N] [--label TEXT] [--set KEY=VALUE]…`. Callers use the public command line (polybrief-cli spec); `--clients` carries `-w`, `--set` carries `-o`, `--label` is the label written to the run log.
+- `--check [--pattern NAME|FILE] [--agents-dir DIR] [--lanes A,B] [--clients A,B] [--set KEY=VALUE]…`: reads the pattern, prints `PLAN` and `CALLS`, starts no worker.
+- `--list`: one `PATTERN<TAB>name<TAB>builtin:name<TAB>description` line per embedded pattern.
+- Pattern lookup: a value with `/` or ending in `.md` is a caller-owned file; a name is an embedded pattern. Without `--pattern`: embedded `parallel`.
+- Call limit, first that is set wins: the internal `--max-calls`; `-o max_calls` when given explicitly (source `flag`); the pattern's `max-calls`; the built-in default 12. At most 40.
+- Settings, workers, and caller-owned lanes come from `polybrief launch --show-config --agents-dir DIR` with forwarded `--set` arguments. The launcher is the binary itself; the environment variable `POLYBRIEF_LAUNCHER` replaces it in the self-checks.
 - Files in `OUT`, a new directory under `TMPDIR`: `brief.md`, optional `change.json`, optional `agents/*.md`, and for each call `<stage>/<round>/<participant>.prompt.md`, `.md`, `.status`, `.launch`.
 - Output, tab-separated, in this order:
 
@@ -69,23 +69,23 @@ Normative for the pattern runner of the polybrief binary (@runner.go, internal c
 
 ## Constraints & Invariants
 
-- Invariant: the runner holds no name of a worker CLI and no CLI flag of a worker.
+- Invariant: the runner holds no CLI flag of a worker and starts no worker CLI itself. It knows worker names only to check that OpenCode has `opencode.model` before any call (@runner.go).
 - Invariant: the runner writes nothing inside `DIR`.
-- Constraint: the runtime's own `patterns/` may lie inside `DIR`: when the runtime reviews itself, they come from the same tree as the runner, so refusing them protects nothing.
+- Constraint: embedded patterns may be used while reviewing the runtime itself. A custom pattern file inside `DIR` is refused.
 - Invariant: a gate and a condition call no model.
 - Invariant: a verdict of a participant and a result of a gate are data for the judge of the skill.
 - Constraint: workers keep no session, so the launcher sends the captured change with every call.
 - Constraint: the prepared context captures selected Git inputs, not every file a worker can read from `DIR`. Skipped secret-like file contents and ignored files are outside the drift fingerprint.
-- Constraint: the settings file is re-read by each launcher call; changing it mid-run can change worker parameters.
+- Constraint: each launcher call receives the run's argument overrides; there is no polybrief settings file.
 - Constraint: the runner needs only the binary; Git is needed only for review mode.
 - Constraint: `OUT` is not removed; it holds the prompts, the answers and the launcher's output.
 
 ## Failure Behavior
 
 1. IF the pattern breaks a rule of its format, THEN the runner MUST exit 2 and name the file and the line.
-2. IF a pattern file outside the runtime's `patterns/` lies inside `DIR`, THEN the runner MUST exit 2.
+2. IF a custom pattern file lies inside `DIR`, THEN the runner MUST exit 2.
 3. IF a pattern names a worker or a lane that the launcher does not know, THEN the runner MUST exit 2 before it starts a worker.
-4. IF the launcher cannot read the settings, THEN the runner MUST exit 2 with the launcher's message.
+4. IF the launcher rejects a setting, THEN the runner MUST exit 2 with the launcher's message.
 5. IF the launcher exits 2 during a run, THEN the runner MUST print the launcher's message and exit 2.
 6. IF the launcher exits 2 during a run, THEN the runner MUST first stop the other launchers of the stage.
 7. IF one participant of a stage fails and another answers, THEN the runner MUST go on with the answers it has.
@@ -98,7 +98,7 @@ Normative for the pattern runner of the polybrief binary (@runner.go, internal c
 
 ## Conformance
 
-An implementation is conformant when it satisfies behaviors 1–24, the invariants and the failure rules. @tests/test_pattern.sh builds the binary, copies the built-in `patterns/` into a throwaway runtime, and points `POLYBRIEF_LAUNCHER` at a fake launcher that records every call and answers from files. It covers: the plan of `--check`, the order of stages, the parallel start, each `input` value, the tags, the placeholders, `until` and the round limit, each form of `when`, a gate in both results, a retry and its limit, a failed participant, a stage with no answer, the call limit, a launcher exit 2 and the launchers it stops, a stopped runner, user patterns and `--list`, `--config`, `--agents-dir`, `--dir`, optional `--base`, and `--timeout` on every call, a pattern inside `DIR` and the runtime's own patterns inside it, a temp directory inside `DIR`, the answer tag that no prompt holds, and each refused pattern. It calls no real model. Run: `bash tests/test_pattern.sh`.
+An implementation is conformant when it satisfies behaviors 1–24, the invariants and the failure rules. @tests/test_pattern.sh builds the binary and points `POLYBRIEF_LAUNCHER` at a fake launcher that records every call and answers from files. It covers: the plan of `--check`, the order of stages, the parallel start, each `input` value, the tags, the placeholders, `until` and the round limit, each form of `when`, a gate in both results, a retry and its limit, a failed participant, a stage with no answer, the call limit, a launcher exit 2 and the launchers it stops, a stopped runner, an explicit custom pattern and `--list`, `--set`, `--agents-dir`, `--dir`, optional `--base`, and `--timeout` on every call, a pattern inside `DIR`, a temp directory inside `DIR`, the answer tag that no prompt holds, and each refused pattern. It calls no real model. Run: `bash tests/test_pattern.sh`.
 
 A run with real workers is a check by hand; the plan (@.archcore/runtime/polybrief-pattern-runner.plan.md) names the runs that compare the patterns.
 

@@ -1,6 +1,6 @@
 ---
 title: "Polybrief pattern file format"
-status: draft
+status: accepted
 tags:
   - "polybrief"
   - "spec"
@@ -8,18 +8,18 @@ tags:
 
 ## Purpose & Scope
 
-Normative for polybrief pattern files: what a file holds and how each part is read. Dependents: the runner (@.archcore/runtime/polybrief-pattern-runner.spec.md), pattern authors, and consumers such as `/codereview`. Out of scope: how workers are started, the content of the brief, and the caller's evaluation of results. The decision is in @.archcore/architecture/polybrief-pattern-runner.adr.md. Built-in patterns are in @patterns/; @docs/code-review.md shows one use case, and the polybrief reference doc contains complete pattern examples.
+Normative for polybrief pattern files: what a file holds and how each part is read. Dependents: the runner (@.archcore/runtime/polybrief-pattern-runner.spec.md), pattern authors, and consumers such as `/codereview`. Out of scope: how workers are started, the content of the brief, and the caller's evaluation of results. The decision is in @.archcore/architecture/polybrief-pattern-runner.adr.md. Built-in patterns are in @patterns/; the Polybrief reference doc contains a complete custom-pattern example.
 
 ## Surface
 
-- Location: the user's `patterns_dir` (default `~/.config/polybrief/patterns/<name>.md`), then the built-in `patterns/<name>.md` (embedded in the Go binary), or a file path: a value that contains `/` or ends in `.md`. A user file replaces a built-in pattern of the same name.
+- Location: built-in patterns are embedded from @patterns/; `-p NAME` selects one. A custom pattern is a caller-owned Markdown file passed with `-p FILE` (a value containing `/` or ending in `.md`).
 - Header: the block between the first two `---` lines, one `key: value` per line.
 
 | Header key | Meaning | Default |
 |---|---|---|
 | `name` | name of the pattern | required |
 | `description` | one line for people | required |
-| `workers` | participants of a stage that has no `run`, comma-separated | required |
+| `workers` | participants of a stage that has no `run`, comma-separated; `-w LIST` replaces it for the run | required |
 | `max-calls` | highest number of launcher calls in one run | the setting `max_calls`, 12 |
 
 - Stage: one `## <id>` section. Its settings are the `- key: value` lines right under the heading; blank lines between the heading and the first setting are skipped, as Markdown formatters add one. After the first setting, the first other line starts the stage prompt; leading blank lines of the prompt are dropped. A `## ` line always starts a new stage, so a prompt uses `###` for its own headings.
@@ -37,9 +37,9 @@ Normative for polybrief pattern files: what a file holds and how each part is re
 | `gate` | `<expr> max <N>`: the stage passes when at most N lines match | none |
 
 - Placeholders in a stage prompt: `{{brief}}` the brief of the run; `{{input}}` the answers chosen by `input`; `{{name}}` the participant name (the role, else the worker); `{{role}}` the role, empty without one; `{{round}}` and `{{rounds}}`.
-- Lanes in `with`: a lane is a checklist the caller supplies (`-c FILE` on the command line, `--agents-dir` with `--lanes` for the internal launcher), named by its file name without `.md`. `run` means every checklist of the run, `none` means no checklists.
+- Lanes in `with`: a lane is a checklist the caller supplies with `-c FILE`, named by its file name without `.md`. `run` means every supplied checklist; `none` means no checklists.
 - Names: a pattern name, a stage id and a role hold `a-z`, `0-9` and `-`.
-- Expressions: POSIX extended regular expressions, matched against one line of an answer at a time, after trailing spaces are removed from the line.
+- Expressions: Go regexp (RE2) syntax, matched against one line of an answer at a time, after trailing spaces are removed from the line.
 - Limits: 8 stages, 4 participants in a stage, 5 rounds in a stage, `max-calls` up to 40.
 
 ## Normative Behavior
@@ -76,7 +76,15 @@ Normative for polybrief pattern files: what a file holds and how each part is re
 5. IF a stage sets `until` with one round, THEN the runner MUST refuse the pattern.
 6. IF a stage sets `retry` without `expect`, THEN the runner MUST refuse the pattern.
 7. IF a pattern passes a limit listed under Surface, THEN the runner MUST refuse the pattern.
-8. IF an expression is not a valid POSIX extended expression, THEN the runner MUST refuse the pattern.
+8. IF an expression is not valid Go regexp (RE2) syntax, THEN the runner MUST refuse the pattern.
+8a. IF a stage id is not a valid name, THEN the runner MUST refuse the pattern.
+8b. IF two stages share an id, THEN the runner MUST refuse the pattern.
+8c. IF a stage sets `from` without `input`, THEN the runner MUST refuse the pattern.
+8d. IF `input` is not `none`, `own`, `others` or `all`, THEN the runner MUST refuse the pattern.
+8e. IF a stage has more than 4 participants, THEN the runner MUST refuse the pattern.
+8f. IF a stage sets `when` with `passed` or `blocked` on a stage that has no `gate`, THEN the runner MUST refuse the pattern.
+8g. IF a `gate` is not of the form `<expr> max <N>`, THEN the runner MUST refuse the pattern.
+8h. IF a `run` role is not a valid name, THEN the runner MUST refuse the pattern.
 9. IF a pattern has no stage, THEN the runner MUST refuse the pattern.
 10. IF the first stage takes `input`, THEN the runner MUST refuse the pattern.
 11. IF two participants of one stage share a name, THEN the runner MUST refuse the pattern.

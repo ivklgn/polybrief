@@ -1,6 +1,6 @@
 ---
 title: "OpenCode worker stakeholder requirements"
-status: draft
+status: accepted
 tags:
   - "security"
   - "polybrief"

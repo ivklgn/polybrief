@@ -1,6 +1,6 @@
 ---
 title: "Cut a polybrief release"
-status: draft
+status: accepted
 tags:
   - "polybrief"
 ---

@@ -28,25 +28,27 @@ func versionString() string {
 }
 
 const usage = `Usage:
-  polybrief [-C DIR] [-b REF] [-p PATTERN] [-c FILE]... [-w LIST] [-o KEY=VALUE]... [--label TEXT] [--config FILE] BRIEF|-
-  polybrief plan   [-p PATTERN] [-c FILE]... [-w LIST] [-o KEY=VALUE]... [--config FILE]
-  polybrief patterns [--config FILE]
-  polybrief config [-o KEY=VALUE]... [--config FILE]
-  polybrief yield  [--label TEXT] [--config FILE] RUN NAME=RAISED/KEPT/ONLY...
+  polybrief [-C DIR] [-b REF] [-p PATTERN] [-c FILE]... [-w LIST] [-o KEY=VALUE]... [--label TEXT] BRIEF|-
+  polybrief plan   [-p PATTERN] [-c FILE]... [-w LIST] [-o KEY=VALUE]...
+  polybrief patterns
+  polybrief config [-o KEY=VALUE]...
+  polybrief yield  [-o KEY=VALUE]... [--label TEXT] RUN NAME=RAISED/KEPT/ONLY...
 
-  BRIEF        the task for every worker; - reads stdin
+  BRIEF        task file for every worker; - reads stdin
   -C DIR       working directory (default: current)
   -b REF       Git base: adds the change REF..working tree, untracked files and history
-  -p PATTERN   pattern name or .md file (default: setting pattern, parallel)
-  -c FILE      checklist, repeatable; a pattern names it by file name without .md
-  -w LIST      clients of this run: codex, claude, opencode
-  -o KEY=VALUE one setting, repeatable (codex.effort=high, timeout=1800, ...)
-  --label TEXT  run label in the worker log (default: pattern name)
-  --config F   settings file (default: $POLYBRIEF_CONFIG, else ~/.config/polybrief/polybrief.conf)
+  -p PATTERN   built-in pattern name or .md file (default: parallel)
+  -c FILE      checklist file, repeatable; a pattern names it by file name without .md
+  -w LIST      workers of this run: codex, claude, opencode (default: codex,claude)
+  -o KEY=VALUE one setting, repeatable (codex.effort=high, timeout=1800, ...; see config)
+  --label TEXT  run label in the run log (default: pattern name)
 
-Result: complete, partial, stale or failed (RESULT line after stage execution).
+Output: tab-separated lines. OUT is the folder with every prompt, answer and log;
+CALLS is planned calls and the call limit; one WORKER line per answer (status, path);
+RESULT is complete, partial, stale or failed. Every answer then follows in full,
+between <answer-...> tags. Problems go to stderr.
 Exit: 0 every executed stage has an ok answer; 1 stale, no stage answer or call limit;
-2 polybrief could not prepare, read or write a required file.
+2 polybrief could not prepare, read or write a required file; 143 stopped by a signal.
 `
 
 func main() {
@@ -76,11 +78,11 @@ func main() {
 
 // public maps the public command line onto the runner and the launcher.
 func public(cmd string, args []string) int {
-	dir, base, pattern, config, workers, label := ".", "", "", "", "", ""
+	dir, base, pattern, workers, label := ".", "", "", "", ""
 	var checklists, sets, pos []string
 	allowed := map[string]string{
-		"run": "-C -b -p -c -w -o --label --config", "plan": "-p -c -w -o --config",
-		"patterns": "--config", "config": "-o --config", "yield": "--label --config",
+		"run": "-C -b -p -c -w -o --label", "plan": "-p -c -w -o",
+		"patterns": "", "config": "-o", "yield": "-o --label",
 	}[cmd]
 	for i := 0; i < len(args); i++ {
 		f := args[i]
@@ -110,11 +112,12 @@ func public(cmd string, args []string) int {
 		case "-c":
 			checklists = append(checklists, v)
 		case "-w":
+			if strings.TrimSpace(v) == "" {
+				die("-w needs at least one worker: codex, claude, opencode")
+			}
 			workers = v
 		case "-o":
 			sets = append(sets, v)
-		case "--config":
-			config = v
 		case "--label":
 			label = v
 		}
@@ -133,9 +136,6 @@ func public(cmd string, args []string) int {
 		if inside(physical(tmp), physical(root)) {
 			die("the temp directory lies inside the reviewed tree: " + physical(tmp))
 		}
-	}
-	if config != "" {
-		common = append(common, "--config", config)
 	}
 	for _, s := range sets {
 		if !strings.Contains(s, "=") {
@@ -221,18 +221,23 @@ func checklistDir(files []string) (string, []string) {
 			os.RemoveAll(dir)
 			die(fmt.Sprintf("two checklists named '%s'", name))
 		}
-		link := filepath.Join(dir, name+".md")
-		if os.Symlink(abs, link) != nil {
-			// Windows without Developer Mode cannot create symlinks; a copy reads the same.
-			data, err := os.ReadFile(abs)
-			if err != nil || os.WriteFile(link, data, 0o600) != nil {
-				os.RemoveAll(dir)
-				die("cannot place checklist: " + f)
-			}
-		}
+		place(dir, abs, name)
 		names = append(names, name)
 	}
 	return dir, names
+}
+
+// place links a checklist into dir as NAME.md.
+func place(dir, src, name string) {
+	link := filepath.Join(dir, name+".md")
+	if os.Symlink(src, link) != nil {
+		// Windows without Developer Mode cannot create symlinks; a copy reads the same.
+		data, err := os.ReadFile(src)
+		if err != nil || os.WriteFile(link, data, 0o600) != nil {
+			os.RemoveAll(dir)
+			die("cannot place checklist: " + src)
+		}
+	}
 }
 
 // passthrough runs a child with this process's stdio, forwards stop signals, and returns its exit code.

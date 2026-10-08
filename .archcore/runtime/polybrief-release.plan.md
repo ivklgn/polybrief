@@ -1,6 +1,6 @@
 ---
 title: "Release polybrief binaries for macOS, Linux and Windows"
-status: draft
+status: accepted
 tags:
   - "polybrief"
 ---
@@ -20,7 +20,7 @@ A pushed `vX.Y.Z` tag publishes working polybrief archives for darwin, linux and
 
 ### Phase 2 — Windows build
 
-5. Move `Setpgid` and `stopGroup` into @launch_unix.go (new, `//go:build !windows`). Source: @launch.go:849, @launch.go:1027-1037.
+5. Move `Setpgid` and `stopGroup` into @launch_unix.go (new, `//go:build !windows`). Source: `Setpgid` and `stopGroup` in @launch.go (the code now lives in @launch_unix.go).
 6. Add @launch_windows.go: no process group; stop the worker tree with `taskkill /T /F /PID`.
 7. Stop the launcher child through the same helper; `Process.Signal(SIGTERM)` fails on Windows. Target: @runner.go:788, @runner.go:969.
 8. Read the home directory with `os.UserHomeDir`. Targets: @config.go:52, @config.go:99, @config.go:255, @config.go:277, @launch.go:1094-1097.
@@ -43,7 +43,7 @@ A pushed `vX.Y.Z` tag publishes working polybrief archives for darwin, linux and
 
 ### Phase 4 — First release
 
-22. Cut the first release with the release guide; version `v0.2.0` [assumption: the unpublished 0.2.0 becomes the first tag].
+22. Cut the first release with the release guide; the first released tag is `v0.0.1`.
 23. Mark task 18 of the Go port plan done by this plan. Target: @.archcore/runtime/go-runtime.plan.md.
 
 ### Phase 5 — Windows check
@@ -62,8 +62,8 @@ A pushed `vX.Y.Z` tag publishes working polybrief archives for darwin, linux and
 |---|---|---|
 | 1 Version from the tag | 1–4 | done |
 | 2 Windows build | 5–14 | code done; all six targets build, `GOOS=windows go vet ./...` passes; runtime behavior unverified (Phase 5) |
-| 3 Release pipeline | 15–21 | 16–21 done; 15 open (owner action: no remote) |
-| 4 First release | 22–23 | open: needs task 15 and a LICENSE decision |
+| 3 Release pipeline | 15–21 | done; the remote exists (updated 2026-10-08) |
+| 4 First release | 22–23 | done; tag `v0.0.1`, `LICENSE` added, install scripts added in commit 5c2c5d9 (updated 2026-10-08) |
 | 5 Windows check | 24–30 | open: needs a Windows host |
 
 Checks run on darwin/arm64: `go test ./...` and the three shell checks pass, also under `/bin/bash` 3.2. GoReleaser 2.18.2: `release --snapshot --clean` built six archives and `checksums.txt`; each archive holds the binary and `README.md`; `check` passes in a clone with an `origin` remote and fails without one. The tag guard accepted v0.2.0 as the first tag, then v0.2.1, v0.3.0, v1.0.0, and rejected 0.2.0, v0.2.0-rc1, v0.2.2, v0.4.0, v0.10.0 after v0.2.0.
@@ -83,23 +83,23 @@ Departures from the task list:
 - @go.mod still has no `require` block.
 - The shell checks pass unchanged on Unix after Phase 2; no assertion is removed.
 - A tag that skips a version fails the workflow, and no release is created.
-- Release `v0.2.0` exists, and the guide's verification passes for darwin/arm64 and linux/amd64.
+- Release `v0.0.1` exists, and the guide's verification passes for darwin/arm64 and linux/amd64.
 - The Windows `rnd` states a result for each of codex, claude and opencode, and @README.md matches it.
 
 ## Dependencies
 
-- A public repository `github.com/ivklgn/polybrief`; today the clone has no remote.
+- A public repository `github.com/ivklgn/polybrief`; the remote exists (2026-10-08).
 - GoReleaser v2 through `goreleaser/goreleaser-action@v6` in CI; a local GoReleaser v2 for task 20.
 - GitHub-hosted runners `ubuntu-latest`, `macos-latest`, `windows-latest`.
 - A Windows 11 host with the worker CLIs for Phase 5; none is available in this session.
-- The tree has no `LICENSE` file; without one a public repository grants no reuse rights. The owner decides this before Phase 4.
+- A `LICENSE` file; the tree now has one.
 - Phase 3 needs Phase 2, because GoReleaser fails when the windows target does not compile. Phase 5 can run after Phase 4.
 
 ## Declared Delta
 
 - Route: capability (size L). Base M from `creates` = 1; raised by M = stone (the accepted Go port decision covers distribution) and R = external-contract (asset names, URLs and the tag scheme become public).
 - creates: release-distribution (the polybrief-release spec).
-- modifies: launcher on Windows — verdict `spec-wrong` for the polybrief-review spec: clauses 20–21 name only `TERM`/`KILL`, and the Surface environment list has no Windows names (evidence: @launch.go:849, @launch.go:1029-1036 do not compile for windows). The spec edit waits for Phase 5 and the owner's confirmation (task 29).
+- modifies: launcher on Windows — verdict `spec-wrong` for the polybrief-review spec: clauses 20–21 name only `TERM`/`KILL`, and the Surface environment list has no Windows names (evidence: `Setpgid` and `syscall.Kill` in @launch.go did not compile for windows; now in @launch_unix.go). The spec edit waits for Phase 5 and the owner's confirmation (task 29).
 - modifies: settings paths — verdict `code-wrong` against the polybrief-config spec: the spec says `~`, the code reads `$HOME`, which Windows does not set (@config.go:52, @config.go:99). Fixed by task 8.
 - retires: none. Task 18 of the Go port plan is discharged by Phase 4.
 - decision: release from tags with GoReleaser v2 (release-distribution ADR).

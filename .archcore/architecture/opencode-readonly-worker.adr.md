@@ -14,7 +14,7 @@ The existing launcher starts local CLIs with a narrow environment and a read-onl
 
 Use OpenCode 1.18.34 `run --pure` with temporary HOME and XDG directories, project configuration disabled, a deny-by-default inline agent, and a link to the user's existing `auth.json` in isolated data storage. OpenCode's built-in plugins stay enabled, because they hold the OAuth loaders that make a stored login work; `--pure` already skips external plugins.
 
-The worker ships with a built-in one-worker pattern `opencode` and an `[opencode]` settings section. This extends the built-in pattern set and the client sections fixed in @.archcore/architecture/go-runtime.adr.md; OpenCode is not added to `parallel` or the default `workers`, because no real provider answer has been recorded yet.
+The worker ships with a built-in one-worker pattern `opencode` and the settings keys `opencode.*`, set with `-o` (there is no settings file). This extends the built-in pattern set and the clients fixed in @.archcore/architecture/go-runtime.adr.md; OpenCode is not added to `parallel` or the default `workers`, because no real provider answer has been recorded yet.
 
 Changed 2026-10-07: the built-in `opencode` pattern was removed; `-w opencode` selects OpenCode in `parallel` and `crosscheck`. OpenCode is still not in the default `workers`.
 

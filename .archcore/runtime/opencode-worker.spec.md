@@ -1,6 +1,6 @@
 ---
 title: "OpenCode read-only worker contract"
-status: draft
+status: accepted
 tags:
   - "spec"
   - "polybrief"
@@ -16,7 +16,7 @@ Normative for OpenCode as one optional read-only Polybrief worker (@launch.go, @
 - Settings: `opencode.model` (provider/model, required when OpenCode runs), `opencode.variant` (provider-specific), `opencode.web` (`on|off`, default `off`).
 - Command: `opencode run --pure --format json --agent polybrief-readonly --dir DIR --print-logs --log-level WARN`, with optional model and variant.
 - Result: existing `WORKER`, `TOOLS`, `TOKENS`, answer artifact, and run-log fields. The effort field holds the OpenCode variant.
-- Source owners: @config.go, @launch.go, @runner.go; example settings in @polybrief.conf.example.
+- Source owners: @config.go, @launch.go, @runner.go; the caller sets `opencode.model` with `-o` (see @examples/code-review/SKILL.md).
 
 ## Normative Behavior
 

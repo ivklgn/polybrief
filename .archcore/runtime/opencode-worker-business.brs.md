@@ -1,6 +1,6 @@
 ---
 title: "OpenCode worker business requirements"
-status: draft
+status: accepted
 tags:
   - "security"
   - "polybrief"
@@ -12,7 +12,7 @@ Add OpenCode as a selectable participant in Polybrief's existing read-only patte
 
 ## Operational Concept
 
-A caller chooses `opencode` with `-w opencode`, through a pattern that names it, or in a direct launcher call. In a stage without `run:` lines `-w` names the workers; in a stage with `run:` lines it only removes participants. The `workers` setting in the settings file applies only to direct launcher calls. The launcher starts it beside existing workers and reports an answer, status, tool count, and token usage. A missing CLI does not stop other workers.
+A caller chooses `opencode` with `-w opencode`, through a pattern that names it, or in a direct launcher call. In a stage without `run:` lines `-w` names the workers; in a stage with `run:` lines it only removes participants. There is no settings file: `-o workers=` is refused, and only the internal `--workers` flag of the launcher sets the list outside `-w`. The launcher starts it beside existing workers and reports an answer, status, tool count, and token usage. A missing CLI does not stop other workers.
 
 ## Business Requirements
 

@@ -10,8 +10,10 @@ examples, not the limit of the project. Describe a write-capable workflow as a
 future capability until its execution and isolation contract exists.
 Keep worker startup and isolation flags in `launch.go` and its per-OS files
 (`launch_unix.go`, `launch_windows.go`), and configuration parsing in `config.go`. The pattern runner (`runner.go`) must start workers only through the launcher.
-In the current runtime, callers own task briefs, checklist files, evidence
-verification, and final decisions.
+The binary embeds its built-in patterns. Callers pass their briefs and optional
+checklist files explicitly, and set runtime options through arguments. There is
+no polybrief home or settings file. Callers own evidence verification and final
+decisions.
 Do not add a dependency on ivklgn-kit or embed its reviewer checklists.
 
 ## Stack and checks
@@ -27,6 +29,8 @@ see `.archcore/runtime/polybrief-release.guide.md`.
 
 Search `.archcore/` before changing behavior. Runtime specs live in
 `.archcore/runtime/`; imported investigations live in `.archcore/research/`.
+Keep detailed project reference and pattern guidance in `.archcore/`; keep
+`README.md` short for users and copyable skills in `examples/`.
 Record decisions and update the affected contracts. Imported measurements describe
 historical runs in ivklgn-kit, not validation of a newer third-party release.
 The project was named `swarm` before 2026-10-04; records of past work keep that

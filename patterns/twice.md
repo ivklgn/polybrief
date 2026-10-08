@@ -1,6 +1,6 @@
 ---
 name: twice
-description: Two independent answers from each client to the same brief. The host judges.
+description: Two independent answers from each worker to the same brief. Your agent judges.
 workers: codex, claude
 max-calls: 4
 ---

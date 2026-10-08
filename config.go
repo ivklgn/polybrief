@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +13,7 @@ var settingKeys = []string{
 	"workers", "timeout", "expect", "codex.model", "codex.effort", "codex.web",
 	"claude.model", "claude.effort", "claude.web", "opencode.model", "opencode.variant", "opencode.web",
 	"env", "context_dirs", "secret_names",
-	"max_diff_bytes", "history", "tool_log", "log", "patterns_dir", "pattern", "max_calls",
+	"max_diff_bytes", "history", "tool_log", "log", "max_calls",
 }
 
 var knownWorkers = []string{"codex", "claude", "opencode"}
@@ -28,9 +27,7 @@ type setting struct{ val, src string }
 
 // settings holds every key with its value and the source that set it.
 type settings struct {
-	m     map[string]*setting
-	file  string
-	state string // loaded | absent
+	m map[string]*setting
 }
 
 func isKey(k string) bool { return contains(settingKeys, k) }
@@ -50,7 +47,6 @@ func newSettings() *settings {
 		s.m[k] = &setting{"", "default"}
 	}
 	home := homeDir()
-	cfgHome := envOr("XDG_CONFIG_HOME", filepath.Join(home, ".config")) + "/polybrief"
 	s.def("workers", "codex,claude")
 	s.def("timeout", "900")
 	s.def("codex.web", "off")
@@ -60,11 +56,6 @@ func newSettings() *settings {
 	s.def("history", "on")
 	s.def("tool_log", "on")
 	s.def("log", envOr("XDG_STATE_HOME", filepath.Join(home, ".local/state"))+"/polybrief/polybrief-runs.tsv")
-	s.def("patterns_dir", cfgHome+"/patterns")
-	if v := os.Getenv("POLYBRIEF_PATTERNS_DIR"); v != "" {
-		s.set("patterns_dir", v, "environment")
-	}
-	s.def("pattern", "parallel")
 	s.def("max_calls", "12")
 	return s
 }
@@ -91,69 +82,10 @@ func (s *settings) setFlag(kv string) {
 	if !isKey(k) {
 		die(fmt.Sprintf("unknown setting '%s'", k))
 	}
+	if k == "workers" {
+		die("workers is selected with -w (or internal --workers), not -o")
+	}
 	s.set(k, strings.TrimSpace(v), "flag")
-}
-
-// load reads the settings file. Flags set before stay; an empty value keeps the default.
-func (s *settings) load(explicit string) {
-	cfgHome := envOr("XDG_CONFIG_HOME", filepath.Join(homeDir(), ".config")) + "/polybrief"
-	s.file = explicit
-	if s.file == "" {
-		s.file = os.Getenv("POLYBRIEF_CONFIG")
-	}
-	named := s.file != ""
-	if !named {
-		s.file = cfgHome + "/polybrief.conf"
-	}
-	s.state = "absent"
-	f, err := os.Open(s.file)
-	if err != nil {
-		if named {
-			die("no such settings file: " + s.file)
-		}
-		return
-	}
-	defer f.Close()
-	s.state = "loaded"
-	section, n := "", 0
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		n++
-		line := strings.TrimSpace(sc.Text())
-		at := fmt.Sprintf("%s:%d", s.file, n)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
-			section = strings.TrimSpace(line[1 : len(line)-1])
-			if !contains(knownWorkers, section) {
-				die(fmt.Sprintf("%s: unknown section '[%s]' (known: %s)", at, section, strings.Join(knownWorkers, ", ")))
-			}
-			continue
-		}
-		k, v, ok := strings.Cut(line, "=")
-		if !ok {
-			die(at + ": expected 'key = value'")
-		}
-		k, v = strings.TrimSpace(k), strings.TrimSpace(v)
-		if section != "" {
-			if strings.Contains(k, ".") {
-				die(fmt.Sprintf("%s: dotted key '%s' inside [%s]", at, k, section))
-			}
-			k = section + "." + k
-		}
-		if !isKey(k) {
-			die(fmt.Sprintf("%s: unknown setting '%s'", at, k))
-		}
-		if k == "expect" {
-			fmt.Fprintln(os.Stderr, "polybrief: ignored setting expect")
-			continue
-		}
-		if v == "" || s.source(k) == "flag" {
-			continue
-		}
-		s.set(k, v, "file:"+strconv.Itoa(n))
-	}
 }
 
 var modelChars = regexp.MustCompile(`^[A-Za-z0-9._:/-]*$`)
@@ -183,8 +115,13 @@ func (s *settings) validate() {
 		}
 		s.m[k].val = strconv.Itoa(atoi(s.get(k)))
 	}
-	if atoi(s.get("timeout")) < 1 {
-		bad("timeout", "needs at least one second")
+	if t := atoi(s.get("timeout")); t < 1 || t > 86400 {
+		bad("timeout", "must be 1 to 86400 seconds")
+	}
+	for _, p := range items(s.get("secret_names")) {
+		if _, err := filepath.Match(p, ""); err != nil {
+			bad("secret_names", fmt.Sprintf("'%s' is not a valid file pattern", p))
+		}
 	}
 	if atoi(s.get("max_diff_bytes")) < 1000 {
 		bad("max_diff_bytes", "needs at least 1000")
@@ -216,21 +153,13 @@ func (s *settings) validate() {
 			bad(w+".effort", fmt.Sprintf("'%s' is not one of %s", e, strings.Join(effortValues[w], ", ")))
 		}
 	}
-	if !nameChars.MatchString(s.get("pattern")) {
-		bad("pattern", "must be a name of a-z, 0-9 and -")
-	}
 	if e := s.get("expect"); e != "" {
 		if _, err := regexp.Compile(e); err != nil {
 			bad("expect", "is not a valid extended regular expression")
 		}
 	}
-	for _, k := range []string{"log", "patterns_dir"} {
-		if s.get(k) != "off" {
-			s.m[k].val = homePath(s.get(k))
-		}
-	}
-	if s.get("patterns_dir") == "off" {
-		bad("patterns_dir", "cannot be off")
+	if s.get("log") != "off" {
+		s.m["log"].val = homePath(s.get("log"))
 	}
 	ws := items(s.get("workers"))
 	if len(ws) == 0 {

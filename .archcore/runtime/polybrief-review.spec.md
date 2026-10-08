@@ -1,6 +1,6 @@
 ---
 title: "Polybrief launcher (polybrief launch) contract"
-status: draft
+status: accepted
 tags:
   - "polybrief"
   - "spec"
@@ -12,10 +12,10 @@ Normative for the launcher of the polybrief binary (@launch.go, internal command
 
 ## Surface
 
-- Run: `polybrief launch --dir DIR [--base REF] --brief FILE|- [--agents-dir DIR] [--lanes A,B] [--workers A,B] [--timeout SEC] [--expect REGEX] [--env NAME]… [--context-dir DIR]… [--label TEXT] [--run-id ID] [--set KEY=VALUE]… [--config FILE]`. Callers use the public command line (polybrief-cli spec); the runner and the self-checks use this form.
-- `--show-config [--config FILE]`: `CONFIG_FILE`, one `CONFIG<TAB>key<TAB>value<TAB>source` line per setting, `KNOWN_WORKERS`, `KNOWN_LANES`.
+- Run: `polybrief launch --dir DIR [--base REF] --brief FILE|- [--agents-dir DIR] [--lanes A,B] [--workers A,B] [--timeout SEC] [--expect REGEX] [--env NAME]… [--context-dir DIR]… [--label TEXT] [--run-id ID] [--set KEY=VALUE]…`. Callers use the public command line (polybrief-cli spec); the runner and the self-checks use this form.
+- `--show-config`: one `CONFIG<TAB>key<TAB>value<TAB>source` line per setting, then `KNOWN_WORKERS` and `KNOWN_LANES`.
 - `--yield RUN NAME=RAISED/KEPT/ONLY… [--label TEXT]`: appends yield rows to the run log, prints `LOGGED<TAB>file<TAB>rows`.
-- Settings file: `--config`, else `$POLYBRIEF_CONFIG`, else `${XDG_CONFIG_HOME:-~/.config}/polybrief/polybrief.conf`; `key = value` lines. Keys and defaults are in @polybrief.conf.example. Source order: flag, file, default; for the Codex model and effort then the top level of `config.toml`. For `patterns_dir`, a non-empty `POLYBRIEF_PATTERNS_DIR` overrides the built-in default with source `environment`; the settings file takes precedence.
+- Settings: built-in defaults and `--set KEY=VALUE`; keys and validation are in the runtime-settings spec. Codex model and effort fall back to the top level of `config.toml`. There is no polybrief settings file or home.
 - Modes: without `--base` any existing directory is accepted; `--base` adds the Git change. Internal `--prepare-context FILE` captures it, `--prepared-context FILE` reuses it, and `--check-context FILE` detects persistent drift.
 - Answer contract: empty for generic briefs; implicit `^(FINDING|NOT-CHECKED|NO FINDINGS)` with a base unless configured explicitly.
 - Checklists: `--agents-dir DIR`, with `--lanes` selecting Markdown basenames; namespace prefixes are accepted for compatibility.
@@ -78,7 +78,7 @@ Normative for the launcher of the polybrief binary (@launch.go, internal command
 - Invariant: the `opencode` worker uses a private tool-permission profile and does not load project configuration or external plugins; this is not an OS sandbox.
 - Invariant: a secret variable of the caller reaches no worker unless the user names it in `env` or `--env`.
 - Invariant: the launcher installs no dependency and runs no script of the reviewed tree.
-- Invariant: caller-owned Markdown files in `--agents-dir` are the only source of checklist text.
+- Invariant: caller-owned Markdown files passed with `-c` are the only source of checklist text; the public command stages them in `--agents-dir`.
 - Constraint: the launcher needs only the binary and the worker CLIs; Git is required only with `--base`.
 - Constraint: `OUT` is not removed; it holds the prompt, the answers and the worker logs.
 
@@ -90,8 +90,8 @@ Normative for the launcher of the polybrief binary (@launch.go, internal command
 4. IF `--dir` is missing or does not exist, THEN the launcher MUST exit 2 with a diagnostic.
 5. IF a supplied `--base` is invalid, or a worker is unknown or duplicated, THEN the launcher MUST exit 2.
 6. IF a lane is unknown or lacks `--agents-dir`, THEN the launcher MUST exit 2.
-7. IF the settings file has an unknown key or a bad value, THEN the launcher MUST exit 2 and name the line.
-8. IF the settings file lies inside `DIR`, THEN the launcher MUST exit 2.
+7. IF an argument sets an unknown key or a bad value, THEN the launcher MUST exit 2 and name the key.
+8. IF `--config` is given, THEN the launcher MUST reject it as an unknown flag.
 9. IF the temp directory or the diff cannot be made, THEN the launcher MUST exit 2.
 10. IF the run log cannot be written, THEN the launcher MUST warn on stderr and go on.
 11. IF the temp directory lies inside `DIR`, THEN the launcher MUST exit 2 before invoking Git or writing anything.

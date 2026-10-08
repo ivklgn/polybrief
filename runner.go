@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -47,6 +48,14 @@ type runner struct {
 	printed                                                       map[string]bool
 	mu                                                            sync.Mutex
 	jobs                                                          map[*exec.Cmd]bool
+	stopping                                                      atomic.Bool // a stop signal arrived
+}
+
+// halt blocks once a stop signal arrived: the handler stops every launcher and exits 143.
+func (r *runner) halt() {
+	if r.stopping.Load() {
+		select {}
+	}
 }
 
 // launcherCmd starts the launcher: POLYBRIEF_LAUNCHER replaces it in the self-checks.
@@ -76,12 +85,12 @@ func patternHeader(data, key string) string {
 
 func runnerMain(args []string) int {
 	r := &runner{printed: map[string]bool{}, jobs: map[*exec.Cmd]bool{}}
-	mode, pattern, config, agents := "run", "", "", ""
+	mode, pattern, agents := "run", "", ""
 	var sets []string
 	for i := 0; i < len(args); i++ {
 		f := args[i]
 		switch f {
-		case "--pattern", "--dir", "--base", "--brief", "--lanes", "--timeout", "--max-calls", "--config", "--agents-dir", "--clients", "--label", "--set":
+		case "--pattern", "--dir", "--base", "--brief", "--lanes", "--timeout", "--max-calls", "--agents-dir", "--clients", "--label", "--set":
 			if i+1 >= len(args) {
 				die(f + " needs a value")
 			}
@@ -102,8 +111,6 @@ func runnerMain(args []string) int {
 				r.timeout = v
 			case "--max-calls":
 				r.maxCalls = v
-			case "--config":
-				config = v
 			case "--agents-dir":
 				agents = v
 			case "--clients":
@@ -120,9 +127,6 @@ func runnerMain(args []string) int {
 		default:
 			die(fmt.Sprintf("unknown argument '%s'", f))
 		}
-	}
-	if config != "" {
-		r.cfg = append(r.cfg, "--config", config)
 	}
 	if agents != "" {
 		r.cfg = append(r.cfg, "--agents-dir", agents)
@@ -161,10 +165,11 @@ func runnerMain(args []string) int {
 		die(strings.TrimPrefix(msg, "polybrief: "))
 	}
 	info := string(infoOut)
-	setting := func(k string) string {
+	// setting returns a CONFIG value; with src set, only when it came from that source.
+	setting := func(k string, src ...string) string {
 		for _, l := range strings.Split(info, "\n") {
 			f := strings.Split(l, "\t")
-			if len(f) >= 3 && f[0] == "CONFIG" && f[1] == k {
+			if len(f) >= 4 && f[0] == "CONFIG" && f[1] == k && (len(src) == 0 || f[3] == src[0]) {
 				return f[2]
 			}
 		}
@@ -179,33 +184,19 @@ func runnerMain(args []string) int {
 		return nil
 	}
 	workers, lanesKnown := field("KNOWN_WORKERS"), field("KNOWN_LANES")
-	userDir := setting("patterns_dir")
-
 	if mode == "list" {
-		user := map[string]bool{}
-		files, _ := filepath.Glob(filepath.Join(userDir, "*.md"))
-		for _, f := range files {
-			d, _ := os.ReadFile(f)
-			n := strings.TrimSuffix(filepath.Base(f), ".md")
-			user[n] = true
-			fmt.Printf("PATTERN\t%s\tuser\t%s\t%s\n", n, f, patternHeader(string(d), "description"))
-		}
 		entries, _ := builtinPatterns.ReadDir("patterns")
 		for _, e := range entries {
 			n := strings.TrimSuffix(e.Name(), ".md")
 			d, _ := builtinPatterns.ReadFile("patterns/" + e.Name())
-			src := "builtin"
-			if user[n] {
-				src = "builtin (replaced by user)"
-			}
-			fmt.Printf("PATTERN\t%s\t%s\tbuiltin:%s\t%s\n", n, src, n, patternHeader(string(d), "description"))
+			fmt.Printf("PATTERN\t%s\tbuiltin:%s\t%s\n", n, n, patternHeader(string(d), "description"))
 		}
 		return 0
 	}
 
 	// The pattern file.
 	if pattern == "" {
-		pattern = setting("pattern")
+		pattern = "parallel"
 	}
 	var data []byte
 	builtin := false
@@ -219,14 +210,11 @@ func runnerMain(args []string) int {
 		if !nameChars.MatchString(pattern) {
 			die(fmt.Sprintf("bad pattern name '%s'", pattern))
 		}
-		user := filepath.Join(userDir, pattern+".md")
-		if d, err := os.ReadFile(user); err == nil {
-			data, r.pf = d, physical(user)
-		} else if d, err := builtinPatterns.ReadFile("patterns/" + pattern + ".md"); err == nil {
-			data, r.pf, builtin = d, pattern+".md", true
-		} else {
-			die(fmt.Sprintf("unknown pattern '%s' (not in %s or the built-in patterns)", pattern, userDir))
+		d, err := builtinPatterns.ReadFile("patterns/" + pattern + ".md")
+		if err != nil {
+			die(fmt.Sprintf("unknown pattern '%s' (use a built-in name or -p FILE)", pattern))
 		}
+		data, r.pf, builtin = d, pattern+".md", true
 	}
 	tmpRoot := os.TempDir()
 	if mode == "run" {
@@ -238,7 +226,7 @@ func runnerMain(args []string) int {
 			die("no such directory: " + r.dir)
 		}
 		rdir := physical(r.dir)
-		// A pull request must not change the pattern. Built-in patterns are embedded.
+		// A pull request must not change the pattern.
 		if !builtin && inside(r.pf, rdir) {
 			die("the pattern file lies inside the reviewed tree: " + r.pf)
 		}
@@ -251,6 +239,15 @@ func runnerMain(args []string) int {
 			}
 		}
 	}
+	// Everything is checked before the work directory exists: a die in the parser leaves nothing behind.
+	limit := r.parse(string(data), workers, lanesKnown, setting("max_calls", "flag"), setting("max_calls"))
+	if mode == "run" && setting("opencode.model") == "" {
+		for _, p := range r.parts {
+			if p.worker == "opencode" {
+				die(openCodeNeedsModel)
+			}
+		}
+	}
 	work, err := os.MkdirTemp(tmpRoot, "polybrief-pattern.")
 	if err != nil {
 		die("cannot create a temp directory in " + tmpRoot)
@@ -260,15 +257,6 @@ func runnerMain(args []string) int {
 	}
 	r.work, r.tag, r.atag = work, randHex(4), randHex(6)
 	r.runID = filepath.Base(work)
-
-	limit := r.parse(string(data), workers, lanesKnown, setting("max_calls"))
-	if mode == "run" && setting("opencode.model") == "" {
-		for _, p := range r.parts {
-			if p.worker == "opencode" {
-				die(openCodeNeedsModel)
-			}
-		}
-	}
 	if mode == "run" {
 		fmt.Printf("OUT\t%s\nRUN\t%s\n", work, r.runID)
 	}
@@ -347,6 +335,7 @@ func runnerMain(args []string) int {
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	go func() {
 		<-sigs
+		r.stopping.Store(true)
 		r.stopJobs()
 		os.Exit(143)
 	}()
@@ -360,7 +349,7 @@ func (r *runner) perr(n int, msg string) {
 var settingLine = regexp.MustCompile(`^- [a-z][a-z-]*:( |$)`)
 
 // parse reads and checks the pattern; it returns the call limit. Everything is checked before any worker.
-func (r *runner) parse(data string, workers, lanesKnown []string, maxSetting string) int {
+func (r *runner) parse(data string, workers, lanesKnown []string, maxFlag, maxDefault string) int {
 	var hWorkers, hMax, hDesc string
 	state, n := "start", 0
 	var cur *stage
@@ -472,12 +461,12 @@ func (r *runner) parse(data string, workers, lanesKnown []string, maxSetting str
 	if len(r.stages) > 8 {
 		die(base + ": more than 8 stages")
 	}
+	// Call limit: internal --max-calls, then an explicit -o max_calls, then the pattern header, then the default.
 	limitS := r.maxCalls
-	if limitS == "" {
-		limitS = hMax
-	}
-	if limitS == "" {
-		limitS = maxSetting
+	for _, v := range []string{maxFlag, hMax, maxDefault} {
+		if limitS == "" {
+			limitS = v
+		}
 	}
 	if !isInt(limitS) || atoi(limitS) < 1 || atoi(limitS) > 40 {
 		die(fmt.Sprintf("the call limit must be 1 to 40, not '%s'", limitS))
@@ -495,7 +484,7 @@ func (r *runner) parse(data string, workers, lanesKnown []string, maxSetting str
 			l = l[i+1:]
 		}
 		if !contains(lanesKnown, l) {
-			die(fmt.Sprintf("unknown lane '%s' (known: %s)", l, strings.Join(lanesKnown, " ")))
+			die(fmt.Sprintf("no checklist named '%s' (known: %s)", l, strings.Join(lanesKnown, " ")))
 		}
 		runLanes = append(runLanes, l)
 	}
@@ -548,7 +537,7 @@ func (r *runner) parse(data string, workers, lanesKnown []string, maxSetting str
 								l = l[k+1:]
 							}
 							if !contains(lanesKnown, l) {
-								die(fmt.Sprintf("%s: unknown lane '%s'", at, l))
+								die(fmt.Sprintf("%s: the pattern needs a checklist named '%s': pass -c PATH/%s.md", at, l, l))
 							}
 							ll = append(ll, l)
 						}
@@ -942,6 +931,7 @@ func (r *runner) execute(limit int) int {
 					}
 					l := &launch{p: p, cmd: launcherCmd(append(a, r.cfg...)...)}
 					l.cmd.Stdout, l.cmd.Stderr = &l.out, &l.err
+					r.halt()
 					r.mu.Lock()
 					if err := l.cmd.Start(); err != nil {
 						r.mu.Unlock()
@@ -966,7 +956,9 @@ func (r *runner) execute(limit int) int {
 				}
 				for k := range ls {
 					// Stop the other launchers first: no paid session outlives the run.
-					if l := <-done; l.rc == 2 {
+					l := <-done
+					r.halt()
+					if l.rc == 2 {
 						r.mu.Lock()
 						for c := range r.jobs {
 							stopChild(c)

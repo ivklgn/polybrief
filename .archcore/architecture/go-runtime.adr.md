@@ -12,18 +12,18 @@ swarm 0.1.0 is about 900 lines of Bash 3.2 (`scripts/swarm_review.sh`, `scripts/
 
 ## Decision
 
-Port swarm to Go as one binary named `swarm`, version 0.2.0.
+Port swarm to Go as one binary named `swarm`, version 0.2.0. (The binary was later renamed `polybrief`; see @.archcore/architecture/polybrief-rename.adr.md.)
 
 - Dependencies: the Go standard library only. The settings file and the top-level keys of `~/.codex/config.toml` are read by the binary's own small parsers.
-- Distribution: `go install` and release binaries. Built-in patterns are embedded with `go:embed`; an installed binary needs no checkout. The `main` package sits at the module root next to `patterns/`, because `go:embed` cannot reach a parent directory.
+- Distribution: `go install` and release binaries. Built-in patterns are embedded with `go:embed`; an installed binary needs no checkout. (The later home decision was superseded on 2026-10-07 by @.archcore/architecture/arguments-only-runtime.adr.md; built-in patterns are embedded again.) The `main` package sits at the module root next to `patterns/`, because `go:embed` cannot reach a parent directory.
 - CLI: one run form and three helper commands, as defined in @.archcore/runtime/polybrief-cli.spec.md:
   - `swarm [-C DIR] [-b REF] [-p PATTERN] [-c FILE]... [-w LIST] [-o KEY=VALUE]... BRIEF|-`
   - `swarm plan`, `swarm config`, `swarm yield`.
   - A run without `-p` runs the pattern `parallel`; a run with `-b` adds the Git change.
-- Configuration: one section per worker client (`[codex]`, `[claude]`) and top-level general keys, overridable with `-o section.key=value`. Dotted keys stay valid in the file. Defined in @.archcore/runtime/polybrief-config.spec.md.
+- Configuration at the time: a settings file plus `-o` overrides. Superseded by the argument-only decision; current keys and defaults are in @.archcore/runtime/polybrief-config.spec.md.
 - Checklists: `-c FILE`, repeatable. A pattern refers to a checklist by its file name without `.md`. `--agents-dir` and `--lanes` go away.
 - Pattern format: unchanged (@.archcore/runtime/polybrief-pattern-file.spec.md).
-- Built-in patterns: `parallel` (default), `twice`, `panel`, `research`. `refute` leaves the built-in set and becomes an example file: its refuters wrote 0 REFUTED verdicts of 59 (@.archcore/research/polybrief-measured-runs.rnd.md). `parallel` and `twice` carry no `expect` and no `retry`: in 50 measured calls no retry ran.
+- Built-in patterns: `parallel` (default), `twice`, `panel`, `crosscheck` (named `research` in this decision; renamed in commit 130423a). `refute` leaves the built-in set and becomes an example file: its refuters wrote 0 REFUTED verdicts of 59 (@.archcore/research/polybrief-measured-runs.rnd.md). `parallel` and `twice` carry no `expect` and no `retry`: in 50 measured calls no retry ran.
 - Every run is a pattern run. The output is the runner's line set; the launcher's own output form is no longer a public command.
 - Answer contract: with `-b`, a stage that inserts `{{brief}}` and sets no `expect` uses `^(FINDING|NOT-CHECKED|NO FINDINGS)`, as `swarm review` did; other stages and runs without `-b` take any non-empty successful answer as `ok`. Later stages answer in their own formats (`VERDICT:`, `POSITION:`), so the contract follows the brief, not the run.
 - Unchanged: worker isolation flags, the environment allowlist, secret-name filtering, the runner's output lines, statuses, exit codes, run log columns (@.archcore/runtime/polybrief-review.spec.md, @.archcore/runtime/polybrief-pattern-runner.spec.md).
@@ -46,9 +46,18 @@ Port swarm to Go as one binary named `swarm`, version 0.2.0.
 - Releases need a build step. Consumers no longer need a checkout, `SWARM_ROOT`, `jq`, `pgrep` or Bash 3.2. `TOOLS` and `TOKENS` lines no longer depend on `jq`.
 - The ivklgn-kit adapters call `swarm` from `PATH`; the kit owns that change and its `references/swarm.md`. A kit step that read the launcher's `WORKER<TAB>name<TAB>status…` lines reads the runner's lines instead.
 - The settings-file key `expect` loses its use: the normal answer contract comes from the pattern or from `-b`. A caller may set `-o expect=REGEX` for a one-run challenge protocol; the file key remains ignored.
-- Existing `swarm.conf` files keep working, because dotted keys stay valid.
+- At the time, existing `swarm.conf` files kept working. The later argument-only decision removed polybrief settings-file support.
 - A user who relied on the built-in `refute` copies the example file into `~/.config/swarm/patterns/`.
 - The migration steps are in @.archcore/runtime/go-runtime.plan.md.
+
+## 2026-10-07 follow-up
+
+The optional `refute` file was removed from the current source tree. It was a
+pattern file rather than a worked example, and the measured refutation stage
+rejected none of 59 findings (@.archcore/research/polybrief-measured-runs.rnd.md).
+The earlier consequence about copying that example file is historical, not a
+current installation step. @tests/test_pattern.sh keeps the runner's
+`input: others`, retry, and gate checks with a synthetic two-stage pattern.
 
 ## Consumer compatibility additions
 

@@ -1,13 +1,13 @@
 ---
 title: "Add OpenCode as a read-only Swarm worker"
-status: draft
+status: accepted
 tags:
   - "polybrief"
 ---
 
 ## Goal
 
-Add OpenCode 1.18.34 as an optional read-only worker through the existing Swarm launcher, with a documented isolation boundary and no Go dependency.
+Add OpenCode 1.18.34 as an optional read-only worker through the existing Swarm launcher (Swarm was renamed Polybrief; see @.archcore/architecture/polybrief-rename.adr.md), with a documented isolation boundary and no Go dependency.
 
 ## Declared Delta
 
@@ -19,7 +19,7 @@ Add OpenCode 1.18.34 as an optional read-only worker through the existing Swarm 
 
 ### Phase 1 — Settings and command boundary
 
-1. Add the OpenCode worker name, model, variant, and web setting to @config.go and @polybrief.conf.example.
+1. Add the OpenCode worker name, model, variant, and web setting to @config.go (the example settings file was deleted later; there is no settings file).
 2. Build the isolated OpenCode command and temporary environment in @launch.go.
 3. Bridge existing OpenCode credentials into temporary data storage in @launch.go without retaining credential bytes in OUT.
 4. Add a one-worker public pattern in `patterns/opencode.md` (removed 2026-10-07; replaced by `-w opencode`).
@@ -38,7 +38,7 @@ Add OpenCode 1.18.34 as an optional read-only worker through the existing Swarm 
 
 ## Acceptance Criteria
 
-- `opencode` can be selected by `-p opencode` or a custom pattern, and by the launcher's `--workers` or `workers` setting; existing default workers remain the same.
+- `opencode` can be selected by `-w opencode -o opencode.model=...` or a custom pattern, and by the launcher's `--workers` flag; existing default workers remain the same.
 - The fake worker observes private HOME/XDG paths, project-config disablement, `--pure`, deny-by-default permissions, and no unrelated caller variable.
 - Answer, error, tool, and token fixtures produce the expected worker status and artifacts.
 - The four repository checks pass; the reviewed tree remains unchanged in the fake-worker check.

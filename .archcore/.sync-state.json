@@ -58,11 +58,6 @@
       "type": "supports"
     },
     {
-      "source": "architecture/standalone-runtime.adr.md",
-      "target": "architecture/polybrief-pattern-runner.adr.md",
-      "type": "supersedes"
-    },
-    {
       "source": "runtime/polybrief-review.spec.md",
       "target": "architecture/standalone-runtime.adr.md",
       "type": "implements"
@@ -281,6 +276,101 @@
       "source": "architecture/polybrief-rename.adr.md",
       "target": "architecture/general-purpose-pattern-runtime.adr.md",
       "type": "extends"
+    },
+    {
+      "source": "architecture/polybrief-home.adr.md",
+      "target": "architecture/go-runtime.adr.md",
+      "type": "extends"
+    },
+    {
+      "source": "architecture/arguments-only-runtime.adr.md",
+      "target": "architecture/polybrief-home.adr.md",
+      "type": "supersedes"
+    },
+    {
+      "source": "runtime/polybrief-cli.spec.md",
+      "target": "architecture/arguments-only-runtime.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-config.spec.md",
+      "target": "architecture/arguments-only-runtime.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "architecture/arguments-only-runtime.adr.md",
+      "target": "architecture/go-runtime.adr.md",
+      "type": "extends"
+    },
+    {
+      "source": "runtime/polybrief-reference.doc.md",
+      "target": "architecture/documentation-layout.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-patterns.doc.md",
+      "target": "architecture/documentation-layout.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-patterns.doc.md",
+      "target": "runtime/polybrief-pattern-file.spec.md",
+      "type": "related"
+    },
+    {
+      "source": "research/polybrief-measured-runs.rnd.md",
+      "target": "runtime/polybrief-patterns.doc.md",
+      "type": "supports"
+    },
+    {
+      "source": "runtime/polybrief-reference.doc.md",
+      "target": "architecture/arguments-only-runtime.adr.md",
+      "type": "related"
+    },
+    {
+      "source": "architecture/standalone-runtime.adr.md",
+      "target": "architecture/polybrief-pattern-runner.adr.md",
+      "type": "related"
+    },
+    {
+      "source": "architecture/polybrief-rename.adr.md",
+      "target": "architecture/arguments-only-runtime.adr.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/polybrief-review.spec.md",
+      "target": "architecture/arguments-only-runtime.adr.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/polybrief-pattern-runner.spec.md",
+      "target": "architecture/arguments-only-runtime.adr.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/polybrief-release.spec.md",
+      "target": "architecture/arguments-only-runtime.adr.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/opencode-worker.spec.md",
+      "target": "architecture/arguments-only-runtime.adr.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/polybrief-reference.doc.md",
+      "target": "runtime/polybrief-pattern-runner.spec.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/polybrief-reference.doc.md",
+      "target": "runtime/polybrief-review.spec.md",
+      "type": "related"
+    },
+    {
+      "source": "runtime/polybrief-patterns.doc.md",
+      "target": "runtime/polybrief-cli.spec.md",
+      "type": "related"
     }
   ]
 }
