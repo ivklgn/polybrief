@@ -233,7 +233,13 @@ func items(s string) []string {
 	return out
 }
 
+// removeOnDie is a temporary directory that die removes before it exits (the runner's base tree).
+var removeOnDie string
+
 func die(msg string) {
 	fmt.Fprintln(os.Stderr, "polybrief: "+msg)
+	if removeOnDie != "" {
+		os.RemoveAll(removeOnDie)
+	}
 	os.Exit(2)
 }

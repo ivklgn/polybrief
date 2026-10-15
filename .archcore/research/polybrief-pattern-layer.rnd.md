@@ -1,6 +1,6 @@
 ---
 title: "Pattern layer for the swarm mode of the review gate"
-status: draft
+status: accepted
 tags:
   - "codereview"
 ---
@@ -162,7 +162,7 @@ Nine runs with the same prompt. The mapping of findings to problems is a judgmen
 
 ## Next Action
 
-- [ ] Follow @.archcore/runtime/polybrief-pattern-runner.plan.md.
+- [x] Followed the pattern-runner plan, closed on 2026-10-15: `git show b3cfc5d:.archcore/runtime/polybrief-pattern-runner.plan.md`.
 
 ## Risks & Unknowns
 

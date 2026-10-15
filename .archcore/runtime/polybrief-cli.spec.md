@@ -43,7 +43,7 @@ Normative for the public command line of the Go binary `polybrief` (@main.go). W
 2. WHEN `-p` names a built-in pattern, the binary MUST read its embedded definition.
 3. WHEN `-p` gives a Markdown path, the binary MUST read that file as a custom pattern.
 4. WHEN `BRIEF` is `-`, the binary MUST read the brief from stdin until EOF.
-5. WHEN `-b` is set, the binary MUST give every worker the selected Git change.
+5. WHEN `-b` is set, the binary MUST give every worker the selected Git change, except a participant `at base` (pattern-runner spec 2a).
 6. WHEN `-b` is set, the binary MUST apply the review answer contract to a stage that inserts `{{brief}}` without its own `expect`.
 7. WHEN a pattern names checklists, the binary MUST resolve them only from `-c` files.
 8. WHEN a stage names no checklist, the binary MUST give it every `-c` checklist.

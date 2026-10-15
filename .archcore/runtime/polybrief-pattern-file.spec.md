@@ -26,7 +26,7 @@ Normative for polybrief pattern files: what a file holds and how each part is re
 
 | Stage setting | Value | Default |
 |---|---|---|
-| `run` | `<worker> [as <role>] [with <lane>+<lane> \| run \| none]`; the line may repeat | every header worker, with the lanes of the run |
+| `run` | `<worker> [as <role>] [at base] [with <lane>+<lane> \| run \| none]`; the line may repeat | every header worker, with the lanes of the run |
 | `input` | `none`, `own`, `others` or `all` | `none` |
 | `from` | id of an earlier stage | the stage before |
 | `rounds` | 1 to 5 | 1 |
@@ -38,6 +38,7 @@ Normative for polybrief pattern files: what a file holds and how each part is re
 
 - Placeholders in a stage prompt: `{{brief}}` the brief of the run; `{{input}}` the answers chosen by `input`; `{{name}}` the participant name (the role, else the worker); `{{role}}` the role, empty without one; `{{round}}` and `{{rounds}}`.
 - Lanes in `with`: a lane is a checklist the caller supplies with `-c FILE`, named by its file name without `.md`. `run` means every supplied checklist; `none` means no checklists.
+- `at base` in `run`: the participant runs on the tree of the base commit and gets no diff. The run needs a Git base; the runner contract owns the base tree.
 - Names: a pattern name, a stage id and a role hold `a-z`, `0-9` and `-`.
 - Expressions: Go regexp (RE2) syntax, matched against one line of an answer at a time, after trailing spaces are removed from the line.
 - Limits: 8 stages, 4 participants in a stage, 5 rounds in a stage, `max-calls` up to 40.
@@ -51,6 +52,7 @@ Normative for polybrief pattern files: what a file holds and how each part is re
 5. WHEN a stage has no `run` setting, the runner MUST use the header `workers` as its participants.
 6. WHEN a `run` setting names a role, the runner MUST use the role as the name of that participant.
 7. WHEN a `run` setting names lanes, the runner MUST give that participant those checklists and no others.
+7a. WHEN a `run` setting holds `at base`, the runner MUST start that participant on the base tree without the diff.
 8. WHEN a stage sets `input` without `from`, the runner MUST take the answers of the stage before it.
 9. WHEN a stage has more than one round, the runner MUST take the input of a later round from the round before.
 10. WHEN `input` is `own`, the runner MUST insert the participant's own earlier answer.
@@ -85,6 +87,7 @@ Normative for polybrief pattern files: what a file holds and how each part is re
 8f. IF a stage sets `when` with `passed` or `blocked` on a stage that has no `gate`, THEN the runner MUST refuse the pattern.
 8g. IF a `gate` is not of the form `<expr> max <N>`, THEN the runner MUST refuse the pattern.
 8h. IF a `run` role is not a valid name, THEN the runner MUST refuse the pattern.
+8i. IF `at` in a `run` setting is followed by a word other than `base`, THEN the runner MUST refuse the pattern.
 9. IF a pattern has no stage, THEN the runner MUST refuse the pattern.
 10. IF the first stage takes `input`, THEN the runner MUST refuse the pattern.
 11. IF two participants of one stage share a name, THEN the runner MUST refuse the pattern.

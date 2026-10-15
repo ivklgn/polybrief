@@ -1,6 +1,6 @@
 ---
 title: "OpenCode 1.18.34 CLI integration for read-only workers"
-status: draft
+status: accepted
 tags:
   - "research"
   - "polybrief"

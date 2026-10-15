@@ -1,6 +1,6 @@
 ---
 title: "Measured runs of swarm patterns, isolation probes and seven other tools"
-status: draft
+status: accepted
 tags:
   - "codereview"
   - "polybrief"
@@ -8,7 +8,7 @@ tags:
 
 ## Research Goal
 
-Phase 5 of @.archcore/runtime/polybrief-pattern-runner.plan.md: measure the shipped patterns on real changes, check the isolation of the workers on current CLI versions, and run other tools on the same prompt. Date: 2026-09-29.
+Phase 5 of the pattern-runner plan (closed on 2026-10-15; `git show b3cfc5d:.archcore/runtime/polybrief-pattern-runner.plan.md`): measure the shipped patterns on real changes, check the isolation of the workers on current CLI versions, and run other tools on the same prompt. Date: 2026-09-29.
 
 ### Scope
 

@@ -5,15 +5,19 @@ package main
 // Internal command `polybrief runner`. Workers start only through the launcher (`polybrief launch`).
 
 import (
+	"archive/tar"
 	"bytes"
 	"embed"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,12 +36,15 @@ type stage struct {
 	parts                                                          []int
 }
 
-type participant struct{ name, worker, role, lanes string }
+type participant struct {
+	name, worker, role, lanes string
+	base                      bool // runs on the tree of the base commit, without the diff
+}
 
 type runner struct {
 	dir, base, brief, laneList, timeout, maxCalls, clients, label string
 	cfg                                                           []string // passed to every launcher call
-	work, tag, atag, runID, pf, hName, prepared                   string
+	work, tag, atag, runID, pf, hName, prepared, baseDir          string
 	briefData                                                     []byte
 	partial                                                       bool
 	stages                                                        []*stage
@@ -49,6 +56,7 @@ type runner struct {
 	mu                                                            sync.Mutex
 	jobs                                                          map[*exec.Cmd]bool
 	stopping                                                      atomic.Bool // a stop signal arrived
+	baseMu                                                        sync.Mutex  // held while a path is created in the base tree
 }
 
 // halt blocks once a stop signal arrived: the handler stops every launcher and exits 143.
@@ -248,6 +256,20 @@ func runnerMain(args []string) int {
 			}
 		}
 	}
+	atBase := false
+	for _, p := range r.parts {
+		atBase = atBase || p.base
+	}
+	if mode == "run" && atBase {
+		if r.base == "" {
+			die("a participant 'at base' needs a Git base (-b)")
+		}
+		sha, err := output(git(r.dir, "rev-parse", "--verify", "--quiet", r.base+"^{commit}"))
+		if err != nil {
+			die(fmt.Sprintf("unknown base '%s'", r.base))
+		}
+		r.base = strings.TrimSpace(sha) // the diff and the base tree take the same commit
+	}
 	work, err := os.MkdirTemp(tmpRoot, "polybrief-pattern.")
 	if err != nil {
 		die("cannot create a temp directory in " + tmpRoot)
@@ -330,16 +352,118 @@ func runnerMain(args []string) int {
 			die("cannot prepare review context: " + msg)
 		}
 	}
-
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	go func() {
 		<-sigs
 		r.stopping.Store(true)
 		r.stopJobs()
+		r.baseMu.Lock() // held until the exit: no new path in the base tree after its removal
+		os.RemoveAll(r.baseDir)
 		os.Exit(143)
 	}()
-	return r.execute(limit)
+	if atBase {
+		// die, a stop signal and the end of the run remove it, also while it is being unpacked.
+		r.baseMu.Lock()
+		r.baseDir, err = os.MkdirTemp(tmpRoot, "polybrief-base.")
+		removeOnDie = r.baseDir
+		r.baseMu.Unlock()
+		if err != nil {
+			die("cannot create a temp directory in " + tmpRoot)
+		}
+		if err := r.unpackBase(); err != nil {
+			die("cannot take the base tree: " + err.Error())
+		}
+	}
+	rc := r.execute(limit)
+	os.RemoveAll(r.baseDir)
+	return rc
+}
+
+// unpackBase unpacks the tree of commit r.base into the empty directory r.baseDir and makes it an
+// empty Git repository, as codex refuses a directory outside Git; the history of the reviewed
+// repository does not reach it, and nothing is written to that repository. Links are made after
+// every file, so no file is written through a link, and os.Root keeps the path of each link inside
+// the tree.
+func (r *runner) unpackBase() error {
+	root, err := os.OpenRoot(r.baseDir)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	arch := git(r.dir, "archive", "--format=tar", r.base)
+	var e bytes.Buffer
+	arch.Stderr = &e
+	out, err := arch.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	if err := arch.Start(); err != nil {
+		return err
+	}
+	var links [][2]string
+	tr := tar.NewReader(out)
+	for {
+		h, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err == nil && filepath.IsLocal(h.Name) {
+			switch h.Typeflag {
+			case tar.TypeDir:
+				r.baseMu.Lock()
+				err = root.MkdirAll(h.Name, 0o700)
+				r.baseMu.Unlock()
+			case tar.TypeReg:
+				err = r.writeNew(root, h.Name, tr, fs.FileMode(h.Mode).Perm()|0o600)
+			case tar.TypeSymlink:
+				links = append(links, [2]string{h.Linkname, h.Name})
+			}
+		}
+		if err != nil {
+			arch.Process.Kill()
+			arch.Wait()
+			return err
+		}
+	}
+	if err := arch.Wait(); err != nil {
+		return fmt.Errorf("git archive: %s", strings.TrimSpace(e.String()))
+	}
+	r.baseMu.Lock()
+	defer r.baseMu.Unlock()
+	for _, l := range links {
+		// ponytail: skipped where the system refuses links (Windows without the right) or the path leaves the tree
+		root.Symlink(l[0], l[1])
+	}
+	c := git(r.baseDir, "init", "-q")
+	// A GIT_DIR of the caller (a Git hook) would point the init at the reviewed repository.
+	c.Env = slices.DeleteFunc(os.Environ(), func(v string) bool { return strings.HasPrefix(v, "GIT_") })
+	_, err = output(c)
+	return err
+}
+
+// writeNew creates a file that does not exist yet. Of two names that differ only in case, a
+// case-insensitive system keeps the first. Only the creation takes the lock: a stop signal that
+// removes the tree during the copy leaves the data in a file without a name.
+func (r *runner) writeNew(root *os.Root, name string, src io.Reader, mode fs.FileMode) error {
+	r.baseMu.Lock()
+	err := root.MkdirAll(filepath.Dir(name), 0o700)
+	var f *os.File
+	if err == nil {
+		f, err = root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	}
+	r.baseMu.Unlock()
+	if errors.Is(err, fs.ErrExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(f, src)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	return err
 }
 
 func (r *runner) perr(n int, msg string) {
@@ -517,7 +641,7 @@ func (r *runner) parse(data string, workers, lanesKnown []string, maxFlag, maxDe
 			if len(f) == 0 {
 				continue
 			}
-			w, role, lanes := f[0], "", strings.Join(runLanes, ",")
+			w, role, lanes, atBase := f[0], "", strings.Join(runLanes, ","), false
 			for j := 1; j < len(f); j += 2 {
 				if j+1 >= len(f) {
 					die(fmt.Sprintf("%s: '%s' needs a value", at, f[j]))
@@ -525,6 +649,11 @@ func (r *runner) parse(data string, workers, lanesKnown []string, maxFlag, maxDe
 				switch f[j] {
 				case "as":
 					role = f[j+1]
+				case "at":
+					if f[j+1] != "base" {
+						die(fmt.Sprintf("%s: bad run setting '%s' (use: at base)", at, rl))
+					}
+					atBase = true
 				case "with":
 					switch v := f[j+1]; v {
 					case "run":
@@ -544,7 +673,7 @@ func (r *runner) parse(data string, workers, lanesKnown []string, maxFlag, maxDe
 						lanes = strings.Join(ll, ",")
 					}
 				default:
-					die(fmt.Sprintf("%s: bad run setting '%s' (use: <worker> [as <role>] [with <lane>+<lane>|run|none])", at, rl))
+					die(fmt.Sprintf("%s: bad run setting '%s' (use: <worker> [as <role>] [at base] [with <lane>+<lane>|run|none])", at, rl))
 				}
 			}
 			if !contains(workers, w) {
@@ -564,7 +693,7 @@ func (r *runner) parse(data string, workers, lanesKnown []string, maxFlag, maxDe
 			if len(clients) > 0 && !contains(clients, w) {
 				continue // -w: this run leaves the client out
 			}
-			r.parts = append(r.parts, participant{name, w, role, lanes})
+			r.parts = append(r.parts, participant{name, w, role, lanes, atBase})
 			s.parts = append(s.parts, len(r.parts)-1)
 		}
 		if len(names) > 4 {
@@ -918,10 +1047,14 @@ func (r *runner) execute(limit int) int {
 					if r.label != "" {
 						name = r.label
 					}
-					a := []string{"--dir", r.dir, "--brief", filepath.Join(rd, pt.name+".prompt.md"), "--workers", pt.worker,
+					dir, prepared := r.dir, r.prepared
+					if pt.base {
+						dir, prepared = r.baseDir, "" // the tree before the change and no diff
+					}
+					a := []string{"--dir", dir, "--brief", filepath.Join(rd, pt.name+".prompt.md"), "--workers", pt.worker,
 						"--expect", expect, "--label", fmt.Sprintf("%s/%s/%d/%s", name, s.id, round, pt.name), "--run-id", r.runID}
-					if r.prepared != "" {
-						a = append(a, "--prepared-context", r.prepared)
+					if prepared != "" {
+						a = append(a, "--prepared-context", prepared)
 					}
 					if pt.lanes != "" {
 						a = append(a, "--lanes", pt.lanes)

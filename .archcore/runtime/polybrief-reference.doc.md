@@ -16,7 +16,7 @@ Reference for the argument-only Go binary `polybrief`. @README.md is the short s
 ## Inputs and outputs
 
 - A run takes one caller-owned brief file, or `-` for stdin. `-b REF` adds Git context but does not choose a brief.
-- `-p NAME` chooses an embedded pattern: `parallel` (default), `twice`, `crosscheck`, or `panel`.
+- `-p NAME` chooses an embedded pattern: `parallel` (default), `twice`, `crosscheck`, `panel`, or `intent`.
 - `-p FILE` reads a caller-owned Markdown pattern. `polybrief plan -p FILE` validates it without starting a worker.
 - `-c FILE` adds a caller-owned checklist. A pattern names it by the file name without `.md`.
 - `-w LIST` selects workers. `-o KEY=VALUE` changes a runtime setting for one command.

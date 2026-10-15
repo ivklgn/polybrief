@@ -102,7 +102,7 @@ Required I/O covers the brief, checklists, selected changed files, prepared cont
 
 ## Conformance
 
-An implementation is conformant when it satisfies behaviors 1–33, the invariants and the failure rules. @tests/test_review.sh checks them with fake `codex`, `claude`, and `opencode` programs that refuse to run without their isolation flags and record their arguments and environment. It calls no real model. Reverting any single fix of Phase 1 of @.archcore/runtime/polybrief-pattern-runner.plan.md makes the check fail; this was tried for each fix on 2026-09-29. Run: `bash tests/test_review.sh`.
+An implementation is conformant when it satisfies behaviors 1–33, the invariants and the failure rules. @tests/test_review.sh checks them with fake `codex`, `claude`, and `opencode` programs that refuse to run without their isolation flags and record their arguments and environment. It calls no real model. Reverting any single fix of Phase 1 of the pattern-runner plan (closed; `git show b3cfc5d:.archcore/runtime/polybrief-pattern-runner.plan.md`) makes the check fail; this was tried for each fix on 2026-09-29. Run: `bash tests/test_review.sh`.
 
 The isolation flags were checked by hand on 2026-09-27 and 2026-09-28 with codex-cli 0.156.1 and Claude Code 2.1.283; the results are in @.archcore/research/polybrief-pattern-layer.rnd.md.
 

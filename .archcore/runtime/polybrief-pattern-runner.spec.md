@@ -42,6 +42,7 @@ Normative for the pattern runner of the polybrief binary (@runner.go, internal c
 
 1. The runner MUST start a worker only by a call of the launcher of the same runtime, one call per participant.
 2. The runner MUST forward the directory, prepared context, timeout, config, captured checklists, and participant lanes to the launcher.
+2a. WHEN a participant runs `at base`, the runner MUST forward the base tree as its directory and no prepared context.
 3. The runner MUST pass the stage's `expect` to the launcher.
 3a. WHEN `--base` is set and a stage without `expect` inserts `{{brief}}`, the runner MUST pass the review contract.
 3b. WHEN no other clause sets a contract for a stage, the runner MUST pass an empty `expect`.
@@ -66,6 +67,14 @@ Normative for the pattern runner of the polybrief binary (@runner.go, internal c
 22. WHEN checklists are selected, the runner MUST copy their contents once into `OUT` before starting workers.
 23. WHEN the selected Git context changes persistently, the runner MUST emit `RESULT stale` and exit 1.
 24. WHEN a stage keeps an `ok` answer beside a failed participant, the runner MUST emit `RESULT partial` and exit 0.
+25. WHEN a pattern has a participant `at base`, the runner MUST resolve `--base` to one commit before it prepares the Git context.
+26. WHEN a pattern has a participant `at base`, the runner MUST unpack that commit's tree with `git archive` into a new directory `polybrief-base.*` under `TMPDIR`.
+26a. WHEN the runner unpacks the base tree, it MUST create the links after every file and directory.
+26c. WHEN the runner unpacks the base tree, it MUST NOT create a path outside the base tree.
+26b. WHEN two names of the base tree differ only in case and the filesystem ignores case, the runner MUST keep the first and go on.
+27. The runner MUST make the base tree an empty Git repository, with no commit and no history of `DIR`.
+27a. WHEN the runner makes the base tree a Git repository, it MUST run `git init` without the caller's `GIT_*` variables.
+28. WHEN the run ends, exits 2 or receives a stop signal, the runner MUST remove the base tree, also while it is being unpacked.
 
 ## Constraints & Invariants
 
@@ -79,6 +88,8 @@ Normative for the pattern runner of the polybrief binary (@runner.go, internal c
 - Constraint: each launcher call receives the run's argument overrides; there is no polybrief settings file.
 - Constraint: the runner needs only the binary; Git is needed only for review mode.
 - Constraint: `OUT` is not removed; it holds the prompts, the answers and the launcher's output.
+- Constraint: the base tree holds what `git archive` gives: files marked `export-ignore` and submodule contents are missing, and links the system refuses or whose path would leave the tree are skipped. `git archive` itself refuses a tree with a `.git` entry.
+- Constraint: a participant `at base` is kept from the change by its directory and its prompt, not by a sandbox; a read-only worker can still read other paths on the machine.
 
 ## Failure Behavior
 
@@ -95,12 +106,15 @@ Normative for the pattern runner of the polybrief binary (@runner.go, internal c
 11. IF the temp directory lies inside `DIR`, THEN the runner MUST exit 2 before it writes anything.
 12. IF a required brief, checklist, stage prompt, answer, status, or launcher output cannot be read or written, THEN the runner MUST exit 2.
 13. IF the launcher cannot prepare or check the context, THEN the runner MUST exit 2 with a diagnostic.
+14. IF a run has a participant `at base` and no `--base`, THEN the runner MUST exit 2 before it creates `OUT`.
+14a. IF `--check` reads a pattern with a participant `at base`, THEN the runner MUST NOT require `--base`.
+15. IF the base cannot be resolved or its tree cannot be unpacked, THEN the runner MUST exit 2 before it starts a worker.
 
 ## Conformance
 
-An implementation is conformant when it satisfies behaviors 1–24, the invariants and the failure rules. @tests/test_pattern.sh builds the binary and points `POLYBRIEF_LAUNCHER` at a fake launcher that records every call and answers from files. It covers: the plan of `--check`, the order of stages, the parallel start, each `input` value, the tags, the placeholders, `until` and the round limit, each form of `when`, a gate in both results, a retry and its limit, a failed participant, a stage with no answer, the call limit, a launcher exit 2 and the launchers it stops, a stopped runner, an explicit custom pattern and `--list`, `--set`, `--agents-dir`, `--dir`, optional `--base`, and `--timeout` on every call, a pattern inside `DIR`, a temp directory inside `DIR`, the answer tag that no prompt holds, and each refused pattern. It calls no real model. Run: `bash tests/test_pattern.sh`.
+An implementation is conformant when it satisfies behaviors 1–28, the invariants and the failure rules. @tests/test_pattern.sh builds the binary and points `POLYBRIEF_LAUNCHER` at a fake launcher that records every call and answers from files. It covers: the plan of `--check`, the order of stages, the parallel start, each `input` value, the tags, the placeholders, `until` and the round limit, each form of `when`, a gate in both results, a retry and its limit, a failed participant, a stage with no answer, the call limit, a launcher exit 2 and the launchers it stops, a stopped runner, an explicit custom pattern and `--list`, `--set`, `--agents-dir`, `--dir`, optional `--base`, and `--timeout` on every call, a pattern inside `DIR`, a temp directory inside `DIR`, the answer tag that no prompt holds, each refused pattern, a crafted base tree (a link and a directory of one name, two names that differ only in case), and a stop signal while the base tree is unpacked. It calls no real model. Run: `bash tests/test_pattern.sh`. @tests/test_cli.sh runs the built-in `intent` with fake workers: the participant `at base` runs in the base tree that holds the base commit's files and no history, gets the task and no diff; the others get the diff; the judge gets both answers, the task, the spec and the diff; the base tree is gone after the run; a run without `-b` is refused before `OUT` and `plan` is not; an unknown base is refused before any worker.
 
-A run with real workers is a check by hand; the plan (@.archcore/runtime/polybrief-pattern-runner.plan.md) names the runs that compare the patterns.
+A run with real workers is a check by hand; the measured runs that compare the patterns are in @.archcore/research/polybrief-measured-runs.rnd.md.
 
 
 ## Migration note

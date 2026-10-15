@@ -1,6 +1,6 @@
 ---
 title: "Go Swarm review comparison on two local cases"
-status: draft
+status: accepted
 tags:
   - "codereview"
   - "source:measurement"

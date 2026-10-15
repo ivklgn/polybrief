@@ -131,12 +131,29 @@ flowchart LR
   C -- findings --> J
 ```
 
-Choose one with `-p NAME`. The four named patterns are built into the binary. In
+**`intent`**: one agent states what the task asks, reading only the task and the
+code before the change; another describes what the change does, without the task; a
+third compares the two lists. Needs `-b REF`, the task text as `-c task.md`, and a
+brief that defines the roles `intended` and `built` and their `ITEM` lines.
+
+```mermaid
+flowchart LR
+  U([You]) --> H[Your agent]
+  H -- brief + task --> P[Polybrief]
+  P --> X[Codex: task, tree at base] & C[Claude: diff, tree now]
+  X -- items --> J1[Claude compares]
+  C -- items --> J1
+  J1 -- mismatches --> J[Your agent checks each one and replies to you]
+```
+
+Choose one with `-p NAME`. The five named patterns are built into the binary. In
 `parallel` and `crosscheck`, `-w` chooses the agents:
-`-w opencode` runs OpenCode alone. `twice` and `panel` name Codex and Claude in their
+`-w opencode` runs OpenCode alone. `twice`, `panel` and `intent` name Codex and Claude in their
 `run:` lines; to use OpenCode there, copy the pattern file and change those lines.
 OpenCode needs `-o opencode.model=provider/model`. The `panel` pattern needs
 `review-security.md` and `review-tests.md`, supplied with `-c FILE`.
+In a pattern file, `run: <worker> at base` runs that participant on a copy of the
+base commit's tree, without the diff; it needs `-b`.
 
 ## Contributing and license
 

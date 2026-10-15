@@ -44,7 +44,7 @@ A pushed `vX.Y.Z` tag publishes working polybrief archives for darwin, linux and
 ### Phase 4 — First release
 
 22. Cut the first release with the release guide; the first released tag is `v0.0.1`.
-23. Mark task 18 of the Go port plan done by this plan. Target: @.archcore/runtime/go-runtime.plan.md.
+23. Mark task 18 of the Go port plan done by this plan. Target: the Go port plan, closed on 2026-10-15 (`git show b3cfc5d:.archcore/runtime/go-runtime.plan.md`).
 
 ### Phase 5 — Windows check
 

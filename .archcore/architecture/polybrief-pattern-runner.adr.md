@@ -30,7 +30,7 @@ Swarm patterns run on a runner of the kit's own, written in Bash, that walks a p
 - Taken from taskflow: a contract that an answer has to meet, with a retry, and a gate that calls no model.
 - The host stays the judge. A verdict of a worker and a result of a gate are data for the judge, not the verdict of the review.
 - The `ultraswarm` depth is removed. Its decision record is rejected (@.archcore/architecture/ultraswarm-optional-engine.adr.md).
-- The launcher is hardened before the runner is built; the order is in @.archcore/runtime/polybrief-pattern-runner.plan.md.
+- The launcher is hardened before the runner is built; the order was in the pattern-runner plan, closed on 2026-10-15 (`git show b3cfc5d:.archcore/runtime/polybrief-pattern-runner.plan.md`).
 
 ## Alternatives
 

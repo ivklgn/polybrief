@@ -23,7 +23,7 @@ Port swarm to Go as one binary named `swarm`, version 0.2.0. (The binary was lat
 - Configuration at the time: a settings file plus `-o` overrides. Superseded by the argument-only decision; current keys and defaults are in @.archcore/runtime/polybrief-config.spec.md.
 - Checklists: `-c FILE`, repeatable. A pattern refers to a checklist by its file name without `.md`. `--agents-dir` and `--lanes` go away.
 - Pattern format: unchanged (@.archcore/runtime/polybrief-pattern-file.spec.md).
-- Built-in patterns: `parallel` (default), `twice`, `panel`, `crosscheck` (named `research` in this decision; renamed in commit 130423a). `refute` leaves the built-in set and becomes an example file: its refuters wrote 0 REFUTED verdicts of 59 (@.archcore/research/polybrief-measured-runs.rnd.md). `parallel` and `twice` carry no `expect` and no `retry`: in 50 measured calls no retry ran.
+- Built-in patterns: `parallel` (default), `twice`, `panel`, `crosscheck` (named `research` in this decision; renamed in commit 130423a). `intent` was added later by @.archcore/architecture/run-at-base.adr.md. `refute` leaves the built-in set and becomes an example file: its refuters wrote 0 REFUTED verdicts of 59 (@.archcore/research/polybrief-measured-runs.rnd.md). `parallel` and `twice` carry no `expect` and no `retry`: in 50 measured calls no retry ran.
 - Every run is a pattern run. The output is the runner's line set; the launcher's own output form is no longer a public command.
 - Answer contract: with `-b`, a stage that inserts `{{brief}}` and sets no `expect` uses `^(FINDING|NOT-CHECKED|NO FINDINGS)`, as `swarm review` did; other stages and runs without `-b` take any non-empty successful answer as `ok`. Later stages answer in their own formats (`VERDICT:`, `POSITION:`), so the contract follows the brief, not the run.
 - Unchanged: worker isolation flags, the environment allowlist, secret-name filtering, the runner's output lines, statuses, exit codes, run log columns (@.archcore/runtime/polybrief-review.spec.md, @.archcore/runtime/polybrief-pattern-runner.spec.md).
@@ -48,7 +48,7 @@ Port swarm to Go as one binary named `swarm`, version 0.2.0. (The binary was lat
 - The settings-file key `expect` loses its use: the normal answer contract comes from the pattern or from `-b`. A caller may set `-o expect=REGEX` for a one-run challenge protocol; the file key remains ignored.
 - At the time, existing `swarm.conf` files kept working. The later argument-only decision removed polybrief settings-file support.
 - A user who relied on the built-in `refute` copies the example file into `~/.config/swarm/patterns/`.
-- The migration steps are in @.archcore/runtime/go-runtime.plan.md.
+- The migration steps were in the Go port plan, closed on 2026-10-15 (`git show b3cfc5d:.archcore/runtime/go-runtime.plan.md`).
 
 ## 2026-10-07 follow-up
 

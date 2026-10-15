@@ -1,6 +1,6 @@
 ---
 title: "Engine for the swarm mode of the review gate"
-status: draft
+status: accepted
 tags:
   - "codereview"
 ---
@@ -181,7 +181,7 @@ The change that added the first ultraswarm version was reviewed through it, with
 
 ## Next Action
 
-- [ ] Follow @.archcore/runtime/polybrief-pattern-runner.plan.md; its Phase 5 holds the runs on five to ten real changes.
+- [x] Followed the pattern-runner plan; its Phase 5 held the runs on real changes. The plan was closed on 2026-10-15: `git show b3cfc5d:.archcore/runtime/polybrief-pattern-runner.plan.md`.
 
 ## Risks & Unknowns
 

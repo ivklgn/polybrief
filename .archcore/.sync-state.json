@@ -43,21 +43,6 @@
       "type": "depends_on"
     },
     {
-      "source": "runtime/polybrief-pattern-runner.plan.md",
-      "target": "runtime/polybrief-pattern-runner.spec.md",
-      "type": "implements"
-    },
-    {
-      "source": "runtime/polybrief-pattern-runner.plan.md",
-      "target": "architecture/polybrief-pattern-runner.adr.md",
-      "type": "depends_on"
-    },
-    {
-      "source": "research/polybrief-review-findings.doc.md",
-      "target": "runtime/polybrief-pattern-runner.plan.md",
-      "type": "supports"
-    },
-    {
       "source": "runtime/polybrief-review.spec.md",
       "target": "architecture/standalone-runtime.adr.md",
       "type": "implements"
@@ -84,11 +69,6 @@
     },
     {
       "source": "research/polybrief-measured-runs.rnd.md",
-      "target": "runtime/polybrief-pattern-runner.plan.md",
-      "type": "implements"
-    },
-    {
-      "source": "research/polybrief-measured-runs.rnd.md",
       "target": "research/polybrief-pattern-layer.rnd.md",
       "type": "extends"
     },
@@ -101,21 +81,6 @@
       "source": "runtime/polybrief-config.spec.md",
       "target": "architecture/go-runtime.adr.md",
       "type": "implements"
-    },
-    {
-      "source": "runtime/go-runtime.plan.md",
-      "target": "runtime/polybrief-cli.spec.md",
-      "type": "implements"
-    },
-    {
-      "source": "runtime/go-runtime.plan.md",
-      "target": "runtime/polybrief-config.spec.md",
-      "type": "implements"
-    },
-    {
-      "source": "runtime/go-runtime.plan.md",
-      "target": "architecture/go-runtime.adr.md",
-      "type": "depends_on"
     },
     {
       "source": "architecture/go-runtime.adr.md",
@@ -168,29 +133,9 @@
       "type": "supersedes"
     },
     {
-      "source": "runtime/review-consistency-iteration.plan.md",
-      "target": "runtime/polybrief-review.spec.md",
-      "type": "implements"
-    },
-    {
-      "source": "runtime/review-consistency-iteration.plan.md",
-      "target": "runtime/polybrief-pattern-runner.spec.md",
-      "type": "implements"
-    },
-    {
-      "source": "runtime/review-consistency-iteration.plan.md",
-      "target": "runtime/polybrief-cli.spec.md",
-      "type": "implements"
-    },
-    {
       "source": "ideas/jev-answer-postprocessing.idea.md",
       "target": "research/polybrief-measured-runs.rnd.md",
       "type": "depends_on"
-    },
-    {
-      "source": "research/polybrief-go-review-comparison.rnd.md",
-      "target": "runtime/review-consistency-iteration.plan.md",
-      "type": "supports"
     },
     {
       "source": "architecture/opencode-readonly-worker.adr.md",
@@ -231,11 +176,6 @@
       "source": "runtime/opencode-worker-software.srs.md",
       "target": "runtime/opencode-worker.spec.md",
       "type": "related"
-    },
-    {
-      "source": "runtime/opencode-worker.plan.md",
-      "target": "runtime/opencode-worker.spec.md",
-      "type": "implements"
     },
     {
       "source": "architecture/opencode-readonly-worker.adr.md",
@@ -371,6 +311,46 @@
       "source": "runtime/polybrief-patterns.doc.md",
       "target": "runtime/polybrief-cli.spec.md",
       "type": "related"
+    },
+    {
+      "source": "research/intent-pattern-experiment.research.md",
+      "target": "research/polybrief-measured-runs.rnd.md",
+      "type": "extends"
+    },
+    {
+      "source": "research/intent-pattern-experiment.research.md",
+      "target": "runtime/polybrief-pattern-file.spec.md",
+      "type": "related"
+    },
+    {
+      "source": "research/ground-pattern-spike.rnd.md",
+      "target": "ideas/research-patterns.idea.md",
+      "type": "related"
+    },
+    {
+      "source": "research/hypotheses-audit-spike.rnd.md",
+      "target": "ideas/research-patterns.idea.md",
+      "type": "related"
+    },
+    {
+      "source": "research/intent-pattern-experiment.research.md",
+      "target": "architecture/run-at-base.adr.md",
+      "type": "supports"
+    },
+    {
+      "source": "architecture/run-at-base.adr.md",
+      "target": "architecture/polybrief-pattern-runner.adr.md",
+      "type": "extends"
+    },
+    {
+      "source": "runtime/polybrief-pattern-runner.spec.md",
+      "target": "architecture/run-at-base.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-pattern-file.spec.md",
+      "target": "architecture/run-at-base.adr.md",
+      "type": "implements"
     }
   ]
 }

@@ -45,6 +45,7 @@ done
 key="${label//\//_}"
 n=$(( $(ls "$F/prompts" | grep -c "^$key\." || true) + 1 ))
 cp "$brief" "$F/prompts/$key.$n"
+ls -AR "$dir" > "$F/tree.$key" 2>/dev/null
 printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$label" "$workers" "$lanes" "$expect" "$config" "$dir" "$base" "$timeout" "$prepared" >> "$F/calls"
 printf '%s start %s\n' "$label" "$(date +%s)" >> "$F/times"
 ! grep -qxF "$label" "$F/launch2" 2>/dev/null || { sleep "$(cat "$F/delay2" 2>/dev/null || echo 0)"; echo "polybrief: cannot run" >&2; exit 2; }
@@ -311,6 +312,38 @@ t0=$SECONDS; refused run || fail "a launcher exit 2 must end the run with exit 2
 [ $((SECONDS - t0)) -lt 10 ] || fail "a launcher exit 2 must not wait for the others"
 for s in $(cat "$F/sleep.pids"); do ! kill -0 "$s" 2>/dev/null || fail "a launcher exit 2 must stop the other launchers"; done
 reset
+# ... and removes the tree of a participant at base
+git init -q "$T/based"; echo x > "$T/based/a.txt"
+git -C "$T/based" add a.txt; git -C "$T/based" -c user.name=t -c user.email=t@t commit -qm base
+pat atbase <<'EOF'
+---
+name: atbase
+description: d
+workers: codex, claude
+---
+## a
+- run: codex at base
+- run: claude
+
+{{brief}}
+EOF
+echo atbase/a/1/claude > "$F/launch2"
+refused "$SW" runner --dir "$T/based" --base HEAD --brief "$T/brief.md" --pattern "$T/patterns/atbase.md" \
+  || fail "a launcher exit 2 must end an at-base run with exit 2"
+[ -z "$(ls -d "$TMPDIR"/polybrief-base.* 2>/dev/null)" ] || fail "a launcher exit 2 must remove the base tree"
+reset
+# a crafted base commit: a link and a directory of the same name, two names that differ only in case
+g() { git -C "$T/based" "$@"; }
+blob=$(echo x | g hash-object -w --stdin); link=$(printf '../../outside' | g hash-object -w --stdin)
+sub=$(printf '100644 blob %s\tevil\n' "$blob" | g mktree)
+tree=$(printf '120000 blob %s\tlnk\n040000 tree %s\tlnk\n100644 blob %s\tA.txt\n100644 blob %s\ta.txt\n' "$link" "$sub" "$blob" "$blob" | g mktree)
+crafted=$(g -c user.name=t -c user.email=t@t commit-tree "$tree" -m crafted)
+mkdir -p "$T/outside"
+"$SW" runner --dir "$T/based" --base "$crafted" --brief "$T/brief.md" --pattern "$T/patterns/atbase.md" >/dev/null 2>"$T/err" \
+  || fail "a crafted base tree must still run: $(cat "$T/err")"
+[ -z "$(ls -A "$T/outside")" ] || fail "no file of the base tree may be written through a link"
+grep -q '^evil$' "$F/tree.atbase_a_1_codex" || fail "the base tree keeps the files: $(cat "$F/tree.atbase_a_1_codex")"
+reset
 : > "$F/showfail"; refused run && grep -q 'bad settings' "$T/err" || fail "a settings error must end the run with exit 2"
 reset
 
@@ -324,6 +357,19 @@ pids_up || fail "the launchers did not start"
 kill -TERM "$runner"; wait "$runner" 2>/dev/null || true; sleep 1
 for s in $(cat "$F/sleep.pids"); do ! kill -0 "$s" 2>/dev/null || fail "a stopped runner must stop its launchers"; done
 reset
+# ... and removes the base tree, also while it is being unpacked (a slow git archive); Windows has no stop signal to send
+case "$(uname -s)" in MINGW* | MSYS* | CYGWIN*) ;; *)
+  mkdir -p "$T/slow"; echo 30 > "$F/sleep"
+  printf '#!/bin/sh\ncase " $* " in *" archive "*) sleep 5 ;; esac\nexec "%s" "$@"\n' "$(command -v git)" > "$T/slow/git"
+  chmod +x "$T/slow/git"
+  PATH="$T/slow:$PATH" "$SW" runner --dir "$T/based" --base HEAD --brief "$T/brief.md" --pattern "$T/patterns/atbase.md" >/dev/null 2>&1 &
+  runner=$!
+  i=0; while [ -z "$(ls -d "$TMPDIR"/polybrief-base.* 2>/dev/null)" ] && [ $i -lt 50 ]; do sleep 0.1; i=$((i + 1)); done
+  kill -TERM "$runner"; rc=0; wait "$runner" 2>/dev/null || rc=$?
+  [ "$rc" = 143 ] && [ -z "$(ls -d "$TMPDIR"/polybrief-base.* 2>/dev/null)" ] \
+    || fail "a stop signal while the base tree is unpacked must remove it (exit $rc)"
+  reset ;;
+esac
 
 # Built-in patterns are listed; a custom file can define all stages from scratch.
 printf -- '---\nname: mine\ndescription: mine\nworkers: claude\n---\n\n## review\n\n{{brief}}\n' > "$T/patterns/mine.md"
@@ -372,6 +418,7 @@ bad "'expect' is not a valid" "${H}## a\n- expect: (\n\nx\n"
 bad 'bad gate' "${H}## a\n- gate: ^x\n\nx\n"
 bad "stage 'a' has no gate" "${H}## a\n\nx\n\n## b\n- when: a passed\n\nx\n"
 bad 'more than 4 participants' "${H}## a\n- run: codex as a1\n- run: codex as a2\n- run: codex as a3\n- run: claude as a4\n- run: claude as a5\n\nx\n"
+bad "(use: at base)" "${H}## a\n- run: codex at head\n\nx\n"
 bad "participant 'codex' given twice" "${H}## a\n- run: codex\n- run: codex\n\nx\n"
 bad "needs a checklist named 'review-cobol': pass -c PATH/review-cobol.md" "${H}## a\n- run: codex with review-cobol\n\nx\n"
 bad 'more than 8 stages' "${H}$(for s in 1 2 3 4 5 6 7 8 9; do printf '## s%s\\n\\nx\\n\\n' $s; done)"

@@ -18,11 +18,13 @@ cat > "$scratch/bin/codex" <<'FAKE'
 [ "${1:-}" != --version ] || { echo fake-codex; exit; }
 case " $* " in *' exec -s read-only --ignore-user-config --ephemeral -c project_doc_max_bytes=0 '*) ;; *) exit 9 ;; esac
 echo "$*" > "$HOME/codex.args"
-output=""
+output="" cdir=""
 while [ $# -gt 0 ]; do
   if [ "$1" = -o ]; then output="$2"; shift; fi
+  if [ "$1" = -C ]; then cdir="$2"; shift; fi
   shift
 done
+{ ls -A "$cdir"; git -C "$cdir" rev-list --all 2>/dev/null | wc -l | tr -d ' '; cat "$cdir/a.txt" 2>/dev/null; } > "$HOME/codex.tree"
 { echo 'FINDING'; cat; } > "$output"
 FAKE
 cat > "$scratch/bin/claude" <<'FAKE'
@@ -79,6 +81,31 @@ mkdir -p "$scratch/own" && printf 'My own tests checklist.\n' > "$scratch/own/re
 out=$(polybrief -C "$scratch/repo" -b HEAD -p panel -w codex -c "$root/examples/code-review/references/review-security.md" -c "$scratch/own/review-tests.md" -o log=off "$root/examples/code-review/references/brief.md")
 grep -q 'My own tests checklist.' <<< "$out" && ! grep -q 'Report a missing test' <<< "$out" \
   || fail "-c must use the supplied checklist: $out"
+
+# intent: intended runs on the tree of the base without the diff; built and the judge get the diff
+printf 'the task\n' > "$scratch/task.md"
+printf 'the spec\n' > "$scratch/spec.md"
+printf 'ITEM describe one side\n' > "$scratch/intent-brief"
+out=$(polybrief -C "$scratch/repo" -b HEAD -p intent -c "$scratch/task.md" -c "$scratch/spec.md" -o log=off -o tool_log=off "$scratch/intent-brief")
+side() { awk -v w="from=\"$1\"" 'index($0, w) {on=1} on {print} on && /^<\/answer-/ {exit}' <<< "$out"; }
+grep -q '^RESULT[[:space:]]complete[[:space:]]3$' <<< "$out" || fail "intent must run three calls: $out"
+grep -q -- '-C [^ ]*/polybrief-base\.' "$HOME/codex.args" || fail "intended must run in the base tree: $(cat "$HOME/codex.args")"
+[ "$(cat "$HOME/codex.tree")" = "$(printf '.git\na.txt\n0\na')" ] || fail "the base tree holds the base commit and no history: $(cat "$HOME/codex.tree")"
+! grep -q '## The change' <<< "$(side intended)" && grep -q 'the task' <<< "$(side intended)" || fail "intended gets the task and no diff: $(side intended)"
+grep -q '## The change' <<< "$(side built)" && ! grep -q 'the task' <<< "$(side built)" || fail "built gets the diff and no task: $(side built)"
+judge=$(awk 'index($0, "from=\"judge\"") {on=1} on' <<< "$out")
+grep -q '<checklist name="spec">' <<< "$judge" && [ "$(grep -c '<checklist name="task">' <<< "$judge")" -ge 2 ] \
+  && grep -q 'from="intended"' <<< "$judge" && grep -q 'from="built"' <<< "$judge" && grep -q '## The change' <<< "$judge" \
+  || fail "the judge gets both answers, the task, the spec and the diff: $judge"
+[ -z "$(ls -d "$TMPDIR"/polybrief-base.* 2>/dev/null)" ] || fail "the base tree must be removed after the run"
+runs=$(ls -d "$TMPDIR"/polybrief-pattern.* | wc -l)
+rc=0; out=$(polybrief -C "$scratch/work" -p intent -c "$scratch/task.md" "$scratch/intent-brief" 2>"$scratch/err") || rc=$?
+[ "$rc" = 2 ] && [ -z "$out" ] && [ "$(ls -d "$TMPDIR"/polybrief-pattern.* | wc -l)" = "$runs" ] && grep -q "needs a Git base" "$scratch/err" \
+  || fail "at base without -b is refused before OUT: $out $(cat "$scratch/err")"
+rc=0; out=$(polybrief -C "$scratch/repo" -b nosuch -p intent -c "$scratch/task.md" "$scratch/intent-brief" 2>"$scratch/err") || rc=$?
+[ "$rc" = 2 ] && ! grep -q '^WORKER' <<< "$out" && [ -z "$(ls -d "$TMPDIR"/polybrief-base.* 2>/dev/null)" ] \
+  || fail "an unknown base is refused before any worker: $out $(cat "$scratch/err")"
+grep -q '^CALLS	3	3$' <<< "$(polybrief plan -p intent -c "$scratch/task.md")" || fail "plan of intent needs no -b"
 
 # Both copyable skill folders use direct CLI calls and their own briefs.
 cp -R "$root/examples/code-review" "$scratch/review-skill"

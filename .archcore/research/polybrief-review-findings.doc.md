@@ -1,13 +1,13 @@
 ---
 title: "Problems found by the swarm test runs"
-status: draft
+status: accepted
 tags:
   - "codereview"
 ---
 
 ## Overview
 
-The list of problems that the test runs of 2026-09-27 and 2026-09-28 found in the change that added the swarm depth. It is the backlog for @.archcore/runtime/polybrief-pattern-runner.plan.md. The runs and their method are in @.archcore/research/polybrief-pattern-layer.rnd.md.
+The list of problems that the test runs of 2026-09-27 and 2026-09-28 found in the change that added the swarm depth. It was the backlog for the pattern-runner plan, closed on 2026-10-15 (`git show b3cfc5d:.archcore/runtime/polybrief-pattern-runner.plan.md`). This document is a historical record: its line numbers point at the removed Bash scripts. The runs and their method are in @.archcore/research/polybrief-pattern-layer.rnd.md.
 
 - Reviewed state: the working tree of 2026-09-27, before the `ultraswarm` depth was removed. Line numbers refer to that state.
 - "Runs" counts the nine runs that used the same prompt: Codex, then Claude. "other" means only a run with a different prompt found it.
@@ -20,8 +20,8 @@ The list of problems that the test runs of 2026-09-27 and 2026-09-28 found in th
 
 - Fixed and guarded by a self-check: A, C, G, I, K, M, N2, N3, N5, N6, N7, N8, P1, P2, P3, P4, S, T, U, V, W, X, Y.
 - Mitigated: F — the skill names the pattern and the two vendors before each launch; the word `swarm` still selects the depth.
-- Open: J — single-quoted values of `config.toml` are not read; the setting `codex.model` covers it.
-- The questions below stay open, except `${CLAUDE_PLUGIN_ROOT}` (the reference files now use `<PLUGIN_ROOT>`) and the plugin version (now 0.5.0).
+- Open in part: J — single-quoted values of `config.toml` are read now (@config.go, `codexDefaults`); indented values are still not read; the setting `codex.model` covers it.
+- The questions below stay open, except `${CLAUDE_PLUGIN_ROOT}` (the reference files now use `<PLUGIN_ROOT>`) and the plugin version (the binary now takes its version from the release tag).
 
 ### Open problems of the launcher
 
