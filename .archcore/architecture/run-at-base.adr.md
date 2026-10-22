@@ -6,6 +6,7 @@ tags:
   - "polybrief"
 ---
 
+
 ## Context
 
 The `intent` idea compares two independent descriptions of a change: `intended` states what the task asks without seeing the change, `built` describes the change without seeing the task, and a judge matches the two lists. Before this decision a run could not keep one participant away from the change: with `-b`, every participant got the same prepared diff (@runner.go `execute`) and worked in the same directory, the tree after the change.
@@ -45,3 +46,8 @@ Point 6 is reversed. @.archcore/research/intent-baseline-spike.rnd.md compared t
 - The checklist wrapper text ("the method of one specialist reviewer") still frames the task file; the brief has to tell the workers to ignore it.
 - Specs updated: @.archcore/runtime/polybrief-pattern-file.spec.md (grammar, 7a, 8i), @.archcore/runtime/polybrief-pattern-runner.spec.md (2a, 25–28, failures 14–15), @.archcore/runtime/polybrief-cli.spec.md (5). Tests: @tests/test_cli.sh (end-to-end with fake workers; since the 2026-10-22 revision on a custom pattern with `at base`), @tests/test_pattern.sh (refused `at` value).
 - Still open from the experiment: the miss rate on subtle defects and run-to-run variance were measured on two seeded changes only.
+
+
+## Revision 2026-10-22: caller-owned scenario presets
+
+The owner chose to remove embedded `intent` and `panel`. The shipped names are now `parallel`, `twice` and `crosscheck`. Task-fit callers use `parallel` with the row contract passed through `-o expect=…`; @examples/done-check/SKILL.md carries the command and reads `review/1` answers. The panel is a caller-owned example at @examples/code-review/panel.md, copied outside the reviewed directory. Earlier descriptions of the embedded names record the prior interface. Roles, checklist routing, retries and `at base` remain available in custom patterns.

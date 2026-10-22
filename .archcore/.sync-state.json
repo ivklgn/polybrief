@@ -371,6 +371,36 @@
       "source": "research/cascade-pattern-spike.rnd.md",
       "target": "research/polybrief-measured-runs.rnd.md",
       "type": "extends"
+    },
+    {
+      "source": "architecture/three-built-in-patterns.adr.md",
+      "target": "architecture/run-at-base.adr.md",
+      "type": "supersedes"
+    },
+    {
+      "source": "architecture/three-built-in-patterns.adr.md",
+      "target": "architecture/go-runtime.adr.md",
+      "type": "supersedes"
+    },
+    {
+      "source": "architecture/three-built-in-patterns.adr.md",
+      "target": "architecture/arguments-only-runtime.adr.md",
+      "type": "supersedes"
+    },
+    {
+      "source": "runtime/polybrief-cli.spec.md",
+      "target": "architecture/three-built-in-patterns.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-patterns.doc.md",
+      "target": "architecture/three-built-in-patterns.adr.md",
+      "type": "implements"
+    },
+    {
+      "source": "runtime/polybrief-reference.doc.md",
+      "target": "architecture/three-built-in-patterns.adr.md",
+      "type": "implements"
     }
   ]
 }

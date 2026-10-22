@@ -54,15 +54,18 @@ be on `PATH`.
    run Polybrief. Substitute real values for the variables:
 
    ```bash
-   polybrief -C "$repo" -b "$merge_base" -p intent -w codex,claude \
+   polybrief -C "$repo" -b "$merge_base" -p parallel -w codex,claude \
+     -o 'expect=^(CONFLICT|MISSING|EXTRA|UNCLEAR|MATCH|SUMMARY)' \
      -c "$tmp/task.md" --label done-check "$skill_dir/references/brief.md"
    ```
 
-   Add `-c "$tmp/spec.md"` when a specification exists. The embedded `intent`
+   Add `-c "$tmp/spec.md"` when a specification exists. The embedded `parallel`
    pattern gives both workers the brief, the `task` block, the `spec` block when
    supplied, the diff, and the tree after the change. It makes two independent
-   calls. The task reaches the workers only through `-c`, so keep it out of the
-   brief. Use `polybrief plan -p intent -w codex,claude` to inspect the call count.
+   calls. Keep the `-o expect=…` override: without it, `-b` selects the review
+   answer format and row answers can be marked `malformed`. The task reaches
+   the workers only through `-c`, so keep it out of the brief. Use
+   `polybrief plan -p parallel -w codex,claude` to inspect the call count.
 
    A run takes a few minutes. Run it with a long tool timeout or in the
    background and wait for `RESULT`; never start a second run while one is
@@ -73,7 +76,7 @@ be on `PATH`.
 
 Read the `WORKER` lines and `RESULT`. After `RESULT`, every answer is printed in
 full between `<answer-… from="NAME">` tags; the files are under
-`<OUT>/compare/1/` if the output was cut. Each answer is one row per line in the
+`<OUT>/review/1/` if the output was cut. Each answer is one row per line in the
 order `CONFLICT`, `MISSING`, `EXTRA`, `UNCLEAR`, `MATCH`, then `SUMMARY`. A
 `malformed` status means the answer had no such row.
 

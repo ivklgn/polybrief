@@ -5,6 +5,7 @@ tags:
   - "polybrief"
 ---
 
+
 ## Overview
 
 Reference for the argument-only Go binary `polybrief`. @README.md is the short start; @main.go, @config.go, @runner.go, and @launch.go implement the command, settings, orchestration, and worker profiles. The CLI, runtime-settings, pattern-file, and pattern-runner specs own the contracts. The argument-only decision is @.archcore/architecture/arguments-only-runtime.adr.md.
@@ -16,7 +17,7 @@ Reference for the argument-only Go binary `polybrief`. @README.md is the short s
 ## Inputs and outputs
 
 - A run takes one caller-owned brief file, or `-` for stdin. `-b REF` adds Git context but does not choose a brief.
-- `-p NAME` chooses an embedded pattern: `parallel` (default), `twice`, `crosscheck`, `panel`, or `intent`.
+- `-p NAME` chooses an embedded pattern: `parallel` (default), `twice`, or `crosscheck`.
 - `-p FILE` reads a caller-owned Markdown pattern. `polybrief plan -p FILE` validates it without starting a worker.
 - `-c FILE` adds a caller-owned checklist. A pattern names it by the file name without `.md`.
 - `-w LIST` selects workers. `-o KEY=VALUE` changes a runtime setting for one command.
@@ -50,13 +51,15 @@ Reference for the argument-only Go binary `polybrief`. @README.md is the short s
 
 ## Brief and checklist
 
-A brief is plain text. The copyable review, research and done-check briefs live at @examples/code-review/references/brief.md, @examples/research/references/brief.md and @examples/done-check/references/brief.md; the done-check brief carries the row format that the built-in `intent` pattern expects, and the task goes in as `-c task.md`. A checklist adds one named set of criteria to a worker prompt; it does not judge results. `panel` needs `review-security.md` and `review-tests.md`, supplied with `-c`; the files live in @examples/code-review/references/. Polybrief identifies a checklist by its basename, so moving it into `references/` does not change the lane name. Frontmatter is removed before a checklist reaches the worker. The caller checks evidence and makes final decisions.
+A brief is plain text. The copyable review, research and done-check briefs live at @examples/code-review/references/brief.md, @examples/research/references/brief.md and @examples/done-check/references/brief.md; the done-check brief carries the row format selected by `-o expect=…` on `parallel`, and the task goes in as `-c task.md`. A checklist adds one named set of criteria to a worker prompt; it does not judge results. The caller-owned @examples/code-review/panel.md needs `review-security.md` and `review-tests.md`, supplied with `-c`; the files live in @examples/code-review/references/. Copy the pattern outside the reviewed directory before passing it with `-p FILE`. Polybrief identifies a checklist by its basename, so moving it into `references/` does not change the lane name. Frontmatter is removed before a checklist reaches the worker. The caller checks evidence and makes final decisions.
 
 The copyable @examples/code-review/SKILL.md calls `parallel` with Codex and
 OpenCode, the Git merge base, and the required OpenCode model. The copyable
 @examples/research/SKILL.md calls `crosscheck` with Claude and Codex and a
-caller-owned brief. The copyable @examples/done-check/SKILL.md (the done check) calls `intent` with
-Codex and Claude, the merge base and the task text as a checklist file. All three
+caller-owned brief. The copyable @examples/done-check/SKILL.md (the done check) calls `parallel` with
+Codex and Claude, the merge base, the task text as a checklist file and
+`-o 'expect=^(CONFLICT|MISSING|EXTRA|UNCLEAR|MATCH|SUMMARY)'`. Answers are under
+`review/1`. The former `intent` and `panel` built-in names are removed. All three
 skills call the binary directly and include references for reading worker output
 and verifying claims. The copyable @examples/grooming/SKILL.md refines a backlog item with its own pattern
 file, @examples/grooming/grooming.md: one stage with `expect` and `retry: 1`

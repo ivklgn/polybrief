@@ -6,6 +6,7 @@ tags:
   - "polybrief"
 ---
 
+
 ## Purpose & Scope
 
 Normative for the public command line of the Go binary `polybrief` (@main.go). Worker isolation is in the launcher spec; pattern syntax and execution are in the pattern specs. The argument-only decision is @.archcore/architecture/arguments-only-runtime.adr.md.
@@ -33,6 +34,7 @@ Normative for the public command line of the Go binary `polybrief` (@main.go). W
 
 - Run output: `OUT`, `RUN`, `PLAN`, `CALLS`, worker results, aggregate `RESULT`, and answer blocks (pattern-runner spec).
 - Plan output: `PLAN` lines and `CALLS`; no worker starts.
+- Built-in names: `parallel`, `twice`, `crosscheck`. Task-fit checks use `parallel` with `-o expect=…`; role-based review uses a caller-owned pattern file.
 - Patterns output: `PATTERN<TAB>name<TAB>builtin:name<TAB>description` per built-in pattern.
 - Settings output: `CONFIG<TAB>key<TAB>value<TAB>source` per setting, then known workers and lanes.
 - Exit codes: 0 complete or partial with an answer in each executed stage; 1 stale, no stage answer, or call limit; 2 infrastructure or input error; 143 stopped.
@@ -44,7 +46,7 @@ Normative for the public command line of the Go binary `polybrief` (@main.go). W
 3. WHEN `-p` gives a Markdown path, the binary MUST read that file as a custom pattern.
 4. WHEN `BRIEF` is `-`, the binary MUST read the brief from stdin until EOF.
 5. WHEN `-b` is set, the binary MUST give every worker the selected Git change, except a participant `at base` (pattern-runner spec 2a).
-6. WHEN `-b` is set, the binary MUST apply the review answer contract to a stage that inserts `{{brief}}` without its own `expect`.
+6. WHEN `-b` sets a review contract, the binary MUST allow `-o expect=REGEX` to override it.
 7. WHEN a pattern names checklists, the binary MUST resolve them only from `-c` files.
 8. WHEN a stage names no checklist, the binary MUST give it every `-c` checklist.
 9. WHEN `-w` is set, the binary MUST replace workers in stages without `run:` lines and filter workers in stages with `run:` lines.

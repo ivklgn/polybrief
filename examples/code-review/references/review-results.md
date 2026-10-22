@@ -36,7 +36,7 @@ findings. The caller owns the final decision.
   adds context; it does not make the output authoritative.
 - Change the two names after `-w` to use other workers. OpenCode still needs
   `-o opencode.model=provider/model` whenever it is selected.
-- The [example README](../README.md#try-the-other-review-patterns) has optional
-  `twice` and `panel` commands using this brief. Follow their `WORKER` lines:
+- The [example README](../README.md#more-samples) has optional
+  `twice` and custom `panel.md` commands using this brief. Follow their `WORKER` lines:
   `twice` writes four named answers; `panel` writes `risk` and `design` answers.
   Both use Codex and Claude instead of this skill's Codex and OpenCode pair.

@@ -2,17 +2,17 @@
 
 ## What runs
 
-The skill uses the embedded `intent` pattern: one stage, `compare`, with Codex
+The skill uses the embedded `parallel` pattern: one stage, `review`, with Codex
 and Claude. Each worker gets the brief, the `task` checklist block, the diff
 from `-b`, and the tree after the change. Neither sees the other's answer. The
-stage has `expect: ^(CONFLICT|MISSING|EXTRA|UNCLEAR|MATCH|SUMMARY)`, so a row
+command sets `-o 'expect=^(CONFLICT|MISSING|EXTRA|UNCLEAR|MATCH|SUMMARY)'`, so a row
 answer is `ok` and an answer without a row is `malformed`. `-w` replaces the
 workers; OpenCode needs `-o opencode.model=provider/model`.
 
-The pattern does not refuse a run without `-b`: the workers then see no change
-and every intended item becomes `MISSING`. Always pass the base.
+The pattern does not refuse a run without `-b`: the workers then see no change,
+so the comparison lacks its diff. Always pass the base.
 
-Run `polybrief plan -p intent -w codex,claude` to inspect the two calls.
+Run `polybrief plan -p parallel -w codex,claude` to inspect the two calls.
 
 ## Rows
 
@@ -52,8 +52,9 @@ Cost on the measured changes of 92 and 191 diff lines: 2 calls, 41–92 seconds,
   mark was not part of the measured runs.
 
 - Edit `references/brief.md` to add rows or change the two steps. Keep the
-  first word of each row in the pattern's `expect`, or the answer is `malformed`.
+  first word of each row in the command's `-o expect=…` expression. An answer
+  with no matching line is `malformed`; matching does not validate every row.
 - A specification changed by the same change goes in as `-c spec.md`. The brief
   tells the workers to read it as the author's statement, not as the task.
-- To change the row words, copy `patterns/intent.md` from the repository, edit
-  its `expect`, and pass the file with `-p`.
+- To change the row words, update the brief and the command’s `-o expect=…`
+  expression together. No custom pattern file is needed.

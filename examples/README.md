@@ -9,7 +9,7 @@ to build the brief and how to check those answers.
 | --- | --- | --- | --- |
 | [code-review](code-review/README.md) | review a change before merge | `/code-review [base] [focus]` | `parallel`, Codex + OpenCode, 2 calls |
 | [research](research/README.md) | answer a question about the code with sources | `/research <question> [in paths]` | `crosscheck`, Claude + Codex, 4 calls |
-| [done-check](done-check/README.md) | does the change do what the task asked? | `/done-check [base] <task>` | `intent`, Codex + Claude, 2 calls |
+| [done-check](done-check/README.md) | does the change do what the task asked? | `/done-check [base] <task>` | `parallel`, Codex + Claude, 2 calls |
 | [grooming](grooming/README.md) | refine a backlog item before work | `/grooming <item> [in paths]` | own pattern file, Codex + Claude, 2 calls |
 
 ```text
@@ -26,6 +26,6 @@ OpenCode also needs a model name. In this repository the folders are linked
 from `.claude/skills/`, so Claude Code opened here has all four commands.
 
 Which pattern, from the measured runs in `.archcore/research/`: `parallel` is
-the default. `twice` adds coverage at twice the cost. `panel` found the same
-problems as `parallel`. A critique stage confirmed nearly every finding it was
-given. The folders say where each number comes from.
+the default. Repeated samples found additional problems in those runs; `twice`
+uses four calls. The custom `panel` example divides review roles, but the
+measurements do not establish a quality gain. The folders describe the limits.

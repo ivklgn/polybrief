@@ -67,7 +67,7 @@ directory. The skills are general. Polybrief runs under them.
 | --- | --- | --- | --- |
 | [code-review](examples/code-review/README.md) | review a change before merge | `/code-review [base] [focus]` | `parallel`, Codex + OpenCode |
 | [research](examples/research/README.md) | answer a question about the code with sources | `/research <question> [in paths]` | `crosscheck`, Claude + Codex |
-| [done-check](examples/done-check/README.md) | does the change do what the task asked? | `/done-check [base] <task>` | `intent`, Codex + Claude |
+| [done-check](examples/done-check/README.md) | does the change do what the task asked? | `/done-check [base] <task>` | `parallel`, Codex + Claude |
 | [grooming](examples/grooming/README.md) | refine a backlog item before work | `/grooming <item> [in paths]` | its own pattern file, Codex + Claude |
 
 ```text
@@ -128,38 +128,19 @@ flowchart LR
   CC --> J
 ```
 
-**`panel`**: a review where each agent takes a different focus.
+Choose one with `-p NAME`. The three named patterns are built into the binary.
+In `parallel` and `crosscheck`, `-w` chooses the agents: `-w opencode` runs
+OpenCode alone. `twice` names Codex and Claude in its `run:` lines; to use
+OpenCode there, copy the pattern file and change those lines.
+OpenCode needs `-o opencode.model=provider/model`.
 
-```mermaid
-flowchart LR
-  U([You]) --> H[Your agent]
-  H -- brief + checklists --> P[Polybrief]
-  P --> X[Codex: security + tests] & C[Claude: design]
-  X -- findings --> J[Your agent reviews findings and replies to you]
-  C -- findings --> J
-```
+Task-fit checks use `parallel` with a row-format override; see the
+[done-check skill](examples/done-check/README.md). Role-based review is a
+[custom panel example](examples/code-review/panel.md), with caller-supplied
+security and test checklists; see [code review](examples/code-review/README.md#role-based-review).
+Existing `-p intent` calls need `-p parallel` and the done-check `-o expect=…`
+setting. Existing `-p panel` calls need a path to a caller-owned panel file.
 
-**`intent`**: does the change do what the task asks? Each agent reads the task
-text and the diff, lists what the task asks and what the change does, and reports
-one row per item: `CONFLICT`, `MISSING`, `EXTRA`, `UNCLEAR` or `MATCH`. Pass
-`-b REF`, the task text as `-c task.md`, and a brief that defines the rows.
-The pattern does not refuse a run without `-b`: the workers then see no change.
-
-```mermaid
-flowchart LR
-  U([You]) --> H[Your agent]
-  H -- brief + task --> P[Polybrief]
-  P --> X[Codex: task + diff] & C[Claude: task + diff]
-  X -- rows --> J[Your agent checks each row and replies to you]
-  C -- rows --> J
-```
-
-Choose one with `-p NAME`. The five named patterns are built into the binary. In
-`parallel`, `crosscheck` and `intent`, `-w` chooses the agents:
-`-w opencode` runs OpenCode alone. `twice` and `panel` name Codex and Claude in their
-`run:` lines; to use OpenCode there, copy the pattern file and change those lines.
-OpenCode needs `-o opencode.model=provider/model`. The `panel` pattern needs
-`review-security.md` and `review-tests.md`, supplied with `-c FILE`.
 In a pattern file, `run: <worker> at base` runs that participant on a copy of the
 base commit's tree, without the diff; it needs `-b`.
 

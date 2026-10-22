@@ -37,14 +37,25 @@ Preview without a model: `polybrief plan -p parallel -w codex,opencode`.
 Needs the Codex and Claude CLIs. `twice` runs four reviews, two per worker,
 and is the one to pick when one run is not enough: in the measured runs a
 second sample found problems the first missed (`.archcore/research/polybrief-measured-runs.rnd.md`,
-Finding 3). `panel` gives Codex the security and test checklists and Claude
-the design lens. It found the same problems as `parallel` (Finding 4) and is
-here to show how checklists reach one worker.
+Finding 3).
 
 ```bash
 polybrief -C "$repo" -b "$base" -p twice --label code-review-twice "$PWD/references/brief.md"
-polybrief -C "$repo" -b "$base" -p panel -c "$PWD/references/review-security.md" \
-  -c "$PWD/references/review-tests.md" --label code-review-panel "$PWD/references/brief.md"
+```
+
+## Role-based review
+
+The caller-owned [panel.md](panel.md) example gives Codex the security and test
+checklists and Claude the design lens. The measured runs did not establish a
+quality gain over `parallel`. Use it to try role and checklist selection.
+Keep the copied skill folder outside the repository being reviewed: Polybrief
+refuses a custom pattern inside its target directory. Set `skill_dir` to the
+absolute path of that copied folder:
+
+```bash
+polybrief -C "$repo" -b "$base" -p "$skill_dir/panel.md" \
+  -c "$skill_dir/references/review-security.md" \
+  -c "$skill_dir/references/review-tests.md" --label code-review-panel "$skill_dir/references/brief.md"
 ```
 
 Statuses, output paths and how to adapt the brief: [references/review-results.md](references/review-results.md).

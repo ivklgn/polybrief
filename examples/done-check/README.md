@@ -4,7 +4,7 @@ A skill that answers one question before a task is closed: does the change do
 what the task asked? The task text is the definition of done. Codex and Claude
 each compare it with the diff and report rows: `CONFLICT`, `MISSING`, `EXTRA`,
 `UNCLEAR`, `MATCH`. The skill verifies each mismatch and reports it. It runs
-Polybrief with the `intent` pattern, two model calls.
+Polybrief with `parallel` and a row-format override, two model calls.
 
 ## From your agent
 
@@ -30,7 +30,8 @@ in a throwaway worktree:
 ```bash
 repo="$(mktemp -d)/polybrief-done-check"
 git worktree add --detach "$repo" bf5e8fb
-polybrief -C "$repo" -b 165ddf8 -p intent -w codex,claude \
+polybrief -C "$repo" -b 165ddf8 -p parallel -w codex,claude \
+  -o 'expect=^(CONFLICT|MISSING|EXTRA|UNCLEAR|MATCH|SUMMARY)' \
   -c "$PWD/references/task.md" --label done-check "$PWD/references/brief.md"
 git worktree remove "$repo"
 ```
@@ -40,10 +41,11 @@ Your own change: the task in a file outside the repository, the merge base as
 
 ```bash
 polybrief -C /path/to/repo -b "$(git -C /path/to/repo merge-base HEAD origin/main)" \
-  -p intent -c /tmp/task.md --label done-check "$PWD/references/brief.md"
+  -p parallel -o 'expect=^(CONFLICT|MISSING|EXTRA|UNCLEAR|MATCH|SUMMARY)' \
+  -c /tmp/task.md --label done-check "$PWD/references/brief.md"
 ```
 
-Preview without a model: `polybrief plan -p intent -w codex,claude`.
+Preview without a model: `polybrief plan -p parallel -w codex,claude`.
 
 Row meanings, measured limits and how to adapt the brief:
 [references/done-check-results.md](references/done-check-results.md).

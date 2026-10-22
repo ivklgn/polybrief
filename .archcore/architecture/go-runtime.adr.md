@@ -6,6 +6,7 @@ tags:
   - "polybrief"
 ---
 
+
 ## Context
 
 swarm 0.1.0 is about 900 lines of Bash 3.2 (`scripts/swarm_review.sh`, `scripts/swarm_pattern.sh`, `bin/swarm`), checked by 734 lines of black-box tests with fake workers; its job is a fan-out of 2–8 worker processes with timeouts, process-tree kills and JSON events, and because a worker call takes 66–86 s on average (@.archcore/research/polybrief-measured-runs.rnd.md), orchestration speed does not decide the language. Most defects found so far come from Bash itself — a file named `-` (problem W), names with a newline (N3), `[a-z]` matching capitals in a UTF-8 locale, `08` read as octal, `read` without a final newline under `set -e`, no `timeout(1)` on macOS, JSON only through optional `jq`, `config.toml` read with `sed` (J) — and the planned capability profiles, MCP configuration and base worktree sit in the same area, while the runner already grew to 433 lines against an estimate of 150–250. The CLI also exposes three run commands and 14 run flags where an agent passes five inputs (directory, base, pattern, checklists, brief), and the settings file is a flat list of dotted keys although the worker clients are fixed: `codex` and `claude`. The stack rule in `AGENTS.md` ("Bash 3.2 and Markdown") changes only by a decision.
@@ -66,3 +67,8 @@ to the public Go CLI. `swarm patterns` exposes the available-pattern list, and
 run-level `--label` keeps lane and challenge labels in worker logs. Both are
 read-only helper surface; the kit still owns the briefs, selected checklists,
 evidence checks, and final verdict.
+
+
+## Revision 2026-10-22: caller-owned scenario presets
+
+The owner chose to remove embedded `intent` and `panel`. The shipped names are now `parallel`, `twice` and `crosscheck`. Task-fit callers use `parallel` with the row contract passed through `-o expect=…`; @examples/done-check/SKILL.md carries the command and reads `review/1` answers. The panel is a caller-owned example at @examples/code-review/panel.md, copied outside the reviewed directory. Earlier descriptions of the embedded names record the prior interface. Roles, checklist routing, retries and `at base` remain available in custom patterns.

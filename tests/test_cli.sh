@@ -35,7 +35,7 @@ echo "$*" > "$HOME/claude.args"
 first=FINDING; [ ! -f "$HOME/claude.first" ] || first=$(cat "$HOME/claude.first")
 if [[ " $* " == *' --output-format stream-json '* ]]; then
   cat >/dev/null
-  printf '%s\n' '{"type":"result","result":"Claude research answer"}'
+  if [ -f "$HOME/claude.first" ]; then printf '{"type":"result","result":"%s"}\n' "$first"; else printf '%s\n' '{"type":"result","result":"Claude research answer"}'; fi
   exit
 fi
 echo "$first"
@@ -70,40 +70,41 @@ out=$(polybrief -C "$scratch/work" -p crosscheck -o log=off -o tool_log=off - < 
 [ "$(grep -c '^WORKER' <<< "$out")" = 4 ] && grep -q 'stage="critique"' <<< "$out" && grep -q '<input-.*from="claude"' <<< "$out" \
   || fail "crosscheck must run two stages: $out"
 
-# A review uses an explicit brief. Panel needs the checklists it names.
+# A review uses an explicit brief. A caller-owned panel needs its named checklists.
+cp -R "$root/examples/code-review" "$scratch/review-skill"
 g() { git -C "$scratch/repo" -c user.name=t -c user.email=t@t "$@"; }
 mkdir -p "$scratch/repo" && g init -q && printf 'a\n' > "$scratch/repo/a.txt" && g add a.txt && g commit -qm init
 printf 'b\n' >> "$scratch/repo/a.txt"
 out=$(polybrief -C "$scratch/repo" -b HEAD -w codex -o log=off "$root/examples/code-review/references/brief.md")
 grep -q 'Review the supplied Git change' <<< "$out" || fail "the explicit review brief must reach the worker: $out"
-out=$(polybrief -C "$scratch/repo" -b HEAD -p panel -w codex -c "$root/examples/code-review/references/review-security.md" -c "$root/examples/code-review/references/review-tests.md" -o log=off "$root/examples/code-review/references/brief.md")
+out=$(polybrief -C "$scratch/repo" -b HEAD -p "$scratch/review-skill/panel.md" -w codex -c "$root/examples/code-review/references/review-security.md" -c "$root/examples/code-review/references/review-tests.md" -o log=off "$root/examples/code-review/references/brief.md")
 grep -q 'Report a missing test' <<< "$out" || fail "panel must use supplied checklists: $out"
 mkdir -p "$scratch/own" && printf 'My own tests checklist.\n' > "$scratch/own/review-tests.md"
-out=$(polybrief -C "$scratch/repo" -b HEAD -p panel -w codex -c "$root/examples/code-review/references/review-security.md" -c "$scratch/own/review-tests.md" -o log=off "$root/examples/code-review/references/brief.md")
+out=$(polybrief -C "$scratch/repo" -b HEAD -p "$scratch/review-skill/panel.md" -w codex -c "$root/examples/code-review/references/review-security.md" -c "$scratch/own/review-tests.md" -o log=off "$root/examples/code-review/references/brief.md")
 grep -q 'My own tests checklist.' <<< "$out" && ! grep -q 'Report a missing test' <<< "$out" \
   || fail "-c must use the supplied checklist: $out"
 
-# intent: both workers get the task, the spec and the diff; the row contract replaces the review contract
+# done-check: parallel gets the task, spec and diff with a caller-owned row contract
+rows='expect=^(CONFLICT|MISSING|EXTRA|UNCLEAR|MATCH|SUMMARY)'
 printf 'the task\n' > "$scratch/task.md"
 printf 'the spec\n' > "$scratch/spec.md"
-printf 'SUMMARY conflicts=0\n' > "$scratch/intent-brief"
-out=$(polybrief -C "$scratch/repo" -b HEAD -p intent -c "$scratch/task.md" -c "$scratch/spec.md" -o log=off -o tool_log=off "$scratch/intent-brief") || fail "intent must complete with row answers: $out"
+printf 'SUMMARY conflicts=0\n' > "$scratch/done-brief"
+out=$(polybrief -C "$scratch/repo" -b HEAD -p parallel -o "$rows" -c "$scratch/task.md" -c "$scratch/spec.md" -o log=off -o tool_log=off "$scratch/done-brief") || fail "done-check must complete with row answers: $out"
 side() { awk -v w="from=\"$1\"" 'index($0, w) {on=1} on {print} on && /^<\/answer-/ {exit}' <<< "$out"; }
-grep -q '^RESULT[[:space:]]complete[[:space:]]2$' <<< "$out" || fail "intent must run two calls: $out"
+grep -q '^RESULT[[:space:]]complete[[:space:]]2$' <<< "$out" || fail "done-check must run two calls: $out"
 for w in codex claude; do
   grep -q '<checklist name="task">' <<< "$(side $w)" && grep -q '<checklist name="spec">' <<< "$(side $w)" && grep -q '## The change' <<< "$(side $w)" \
     || fail "$w gets the task, the spec and the diff: $(side $w)"
 done
-# a row answer is ok under intent; the same answer fails the review contract that a stage without expect gets
+# A row answer is accepted with the override and rejected without it.
 printf 'CONFLICT | asked | built | why | a.txt:1\n' > "$HOME/claude.first"
-out=$(polybrief -C "$scratch/repo" -b HEAD -p intent -w claude -c "$scratch/task.md" -o log=off -o tool_log=off "$scratch/intent-brief") || fail "intent must complete with row answers: $out"
-grep -q '^WORKER	compare	1	claude	ok	' <<< "$out" || fail "a row answer must be ok under intent: $out"
-grep -v '^- expect:' "$root/patterns/intent.md" > "$scratch/intent-noexpect.md"
-out=$(polybrief -C "$scratch/repo" -b HEAD -p "$scratch/intent-noexpect.md" -w claude -c "$scratch/task.md" -o log=off -o tool_log=off "$scratch/intent-brief") || true
-grep -q '^WORKER	compare	1	claude	malformed	' <<< "$out" || fail "without expect the row answer must fail the review contract: $out"
+out=$(polybrief -C "$scratch/repo" -b HEAD -p parallel -o "$rows" -w claude -c "$scratch/task.md" -o log=off -o tool_log=off "$scratch/done-brief") || fail "done-check must complete with row answers: $out"
+grep -q '^WORKER	review	1	claude	ok	' <<< "$out" || fail "a row answer must be ok with the row override: $out"
+out=$(polybrief -C "$scratch/repo" -b HEAD -p parallel -w claude -c "$scratch/task.md" -o log=off -o tool_log=off "$scratch/done-brief") || true
+grep -q '^WORKER	review	1	claude	malformed	' <<< "$out" || fail "without the override the row answer must fail the review contract: $out"
 rm "$HOME/claude.first"
-grep -q '^PLAN	compare	claude	1$' <<< "$(polybrief plan -p intent -w claude)" || fail "-w filters intent"
-grep -q '^CALLS	3	3$' <<< "$(polybrief plan -p intent -w codex,claude,opencode -o opencode.model=p/m)" || fail "intent takes three workers within its call limit"
+grep -q '^PLAN	review	claude	1$' <<< "$(polybrief plan -p parallel -o "$rows" -w claude)" || fail "-w filters parallel"
+grep -q '^CALLS	3	3$' <<< "$(polybrief plan -p parallel -o "$rows" -w codex,claude,opencode -o opencode.model=p/m)" || fail "parallel takes three workers within its call limit"
 
 # at base: the participant runs on the tree of the base without the diff; the others get the diff
 cat > "$scratch/at-base.md" <<'PAT'
@@ -151,8 +152,7 @@ rc=0; out=$(polybrief -C "$scratch/repo" -b nosuch -p "$scratch/at-base.md" -c "
   || fail "an unknown base is refused before any worker: $out $(cat "$scratch/err")"
 grep -q '^CALLS	3	3$' <<< "$(polybrief plan -p "$scratch/at-base.md" -c "$scratch/task.md")" || fail "plan of an at-base pattern needs no -b"
 
-# Both copyable skill folders use direct CLI calls and their own briefs.
-cp -R "$root/examples/code-review" "$scratch/review-skill"
+# Copyable skills run outside the checkout, using their own briefs.
 out=$(cd "$scratch/work" && polybrief -C "$scratch/repo" -b HEAD -p parallel -w codex,opencode \
   -o opencode.model=openai/gpt-5 --label code-review "$scratch/review-skill/references/brief.md")
 grep -q '^WORKER[[:space:]]review[[:space:]]1[[:space:]]codex[[:space:]]ok[[:space:]]' <<< "$out" \
@@ -171,10 +171,32 @@ out=$(cd "$scratch/work" && polybrief -C "$root" -p crosscheck -w claude,codex \
   && grep -q '^RESULT[[:space:]]complete[[:space:]]4$' <<< "$out" \
   && grep -q 'Should Polybrief keep one' <<< "$out" \
   || fail "copied research skill: $out"
+# Execute the launch block from the copied done-check skill, with its actual brief.
+cp -R "$root/examples/done-check" "$scratch/done-skill"
+awk '/^   ```bash$/ {on=1; next} on && /^   ```$/ {exit} on {sub(/^   /, ""); print}' \
+  "$scratch/done-skill/SKILL.md" > "$scratch/run-done.sh"
+[ -s "$scratch/run-done.sh" ] || fail "done-check launch block missing"
+printf 'SUMMARY conflicts=0 missing=0 extra=0 unclear=0 matches=1\n' > "$HOME/claude.first"
+out=$(cd "$scratch/work" && repo="$scratch/repo" merge_base=HEAD tmp="$scratch" skill_dir="$scratch/done-skill" bash "$scratch/run-done.sh")
+grep -q '^RESULT[[:space:]]complete[[:space:]]2$' <<< "$out" || fail "copied done-check skill: $out"
+for w in codex claude; do
+  answer=$(awk -F '\t' -v w="$w" '$1 == "WORKER" && $4 == w {print $7; exit}' <<< "$out")
+  launch_out=$(awk -F '\t' '$1 == "OUT" {print $2; exit}' "${answer%.md}.launch")
+  grep -q "^WORKER[[:space:]]review[[:space:]]1[[:space:]]$w[[:space:]]ok[[:space:]]" <<< "$out" \
+    && [ -f "$answer" ] \
+    && grep -q '<checklist name="task">' "$launch_out/prompt.md" \
+    && grep -q '## The change' "$launch_out/prompt.md" \
+    || fail "copied done-check inputs and output path for $w: $out"
+done
+rm "$HOME/claude.first"
+# Copyable custom patterns plan outside their reviewed repository.
+cp -R "$root/examples/grooming" "$scratch/grooming-skill"
+grep -q '^CALLS	4	4$' <<< "$(cd "$scratch/work" && polybrief plan -p "$scratch/grooming-skill/grooming.md")" || fail "copied grooming skill"
+
 refused polybrief --home "$scratch/own" "$scratch/brief" || fail "--home is no longer accepted"
-refused polybrief -C "$scratch/repo" -b HEAD -p panel "$root/examples/code-review/references/brief.md" \
+refused polybrief -C "$scratch/repo" -b HEAD -p "$scratch/review-skill/panel.md" "$root/examples/code-review/references/brief.md" \
   && grep -q "needs a checklist named 'review-security': pass -c PATH/review-security.md" "$scratch/err" || fail "panel names the missing checklist: $(cat "$scratch/err")"
-refused polybrief plan -p panel -c "$root/examples/code-review/references/review-security.md" \
+refused polybrief plan -p "$scratch/review-skill/panel.md" -c "$root/examples/code-review/references/review-security.md" \
   && grep -q "named 'review-tests'" "$scratch/err" || fail "panel names the second missing checklist"
 refused polybrief plan -w '' && grep -q 'needs at least one worker' "$scratch/err" || fail "-w '' is refused"
 echo x > "$scratch/Bad_Name.md"; refused polybrief plan -c "$scratch/Bad_Name.md" && grep -q 'bad checklist name' "$scratch/err" || fail "a checklist name outside a-z0-9- is refused"
@@ -194,6 +216,10 @@ rm -f "$HOME/codex.args"
 grep -q '^CALLS	4	4$' <<< "$(polybrief plan -p twice)" || fail "plan must show the calls"
 [ ! -e "$HOME/codex.args" ] || fail "plan must start no worker"
 grep -q '^PATTERN	parallel	' <<< "$(polybrief patterns)" || fail "patterns must list built-ins"
+[ "$(polybrief patterns | cut -f 2 | sort)" = "$(printf 'crosscheck\nparallel\ntwice')" ] || fail "only general patterns are built in"
+for old in intent panel; do
+  refused polybrief plan -p "$old" || fail "$old must no longer resolve as a built-in"
+done
 
 # yield records the judge's counts
 grep -q '^LOGGED' <<< "$(polybrief yield --label parallel -o log="$scratch/runs.tsv" R1 codex=3/2/1)" || fail "yield"
@@ -234,7 +260,7 @@ refused polybrief -C "$scratch/work" -b HEAD "$scratch/brief" || fail "-b outsid
 
 # the example files stay valid: the grooming pattern plans, and the done-check brief and task exist
 grep -q '^CALLS	4	4$' <<< "$(polybrief plan -p "$root/examples/grooming/grooming.md")" || fail "example grooming pattern"
-[ -s "$root/examples/done-check/references/brief.md" ] && [ -s "$root/examples/done-check/references/task.md" ] || fail "intent example files"
+[ -s "$root/examples/done-check/references/brief.md" ] && [ -s "$root/examples/done-check/references/task.md" ] || fail "done-check example files"
 
 # the binary works from any place, without a checkout
 cp "$scratch/bin/polybrief" "$scratch/relocated"

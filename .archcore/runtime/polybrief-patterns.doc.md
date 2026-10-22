@@ -7,7 +7,7 @@ tags:
 
 ## Overview
 
-Lookup for the five patterns embedded in @patterns/. The main agent supplies the brief, reads worker answers, verifies claims, and makes the final decision. Workers use the read-only launcher profile.
+Lookup for the three patterns embedded in @patterns/. The main agent supplies the brief, reads worker answers, verifies claims, and makes the final decision. Workers use the read-only launcher profile.
 
 ## Content
 
@@ -16,12 +16,16 @@ Lookup for the five patterns embedded in @patterns/. The main agent supplies the
 | `parallel` | Codex and Claude answer independently in one stage. | 2 | A second opinion on a change or question; each model gives one sample. |
 | `twice` | Two Codex and two Claude calls answer independently in one stage. | 4 | More samples for a review; four calls spend more model quota. |
 | `crosscheck` | Codex and Claude analyze independently; each then critiques the other answer. | 4 | Compare conclusions, evidence, assumptions, and disagreements; the critique does not verify claims for the caller. |
-| `panel` | Codex reviews security and tests; Claude reviews design. | 2, up to 4 with retries | A review with supplied `review-security.md` and `review-tests.md` checklists. |
-| `intent` | Codex and Claude each read the task and the diff in one stage and report one row per item: `CONFLICT`, `MISSING`, `EXTRA`, `UNCLEAR`, `MATCH`, then `SUMMARY`. The stage carries its own `expect`, so the review answer contract does not apply. | 2 | Does the change do what the task asks? Pass `-b` and the task as `-c task.md`; an optional `-c spec.md` reaches both workers. The pattern has no participant `at base`, so a run without `-b` is not refused: the workers then see no change. The brief carries the row format (@examples/done-check/references/brief.md); the rows are leads for the caller. |
 
-`parallel` is the default. Run `polybrief plan -p NAME` to see stages and the call limit before starting workers. `-w LIST` replaces workers in stages without `run:` lines (`parallel`, `crosscheck`, `intent`) and filters the fixed participants in `twice` and `panel`. In `panel`, pass both named checklists with `-c FILE`. The `intent` measurements: the blind three-call form in @.archcore/research/intent-pattern-experiment.research.md, and the one-stage form against it in @.archcore/research/intent-baseline-spike.rnd.md, which found every seeded defect and more true rows at a lower cost.
+`parallel` is the default. Run `polybrief plan -p NAME` to see stages and the call limit before starting workers. `-w LIST` replaces workers in stages without `run:` lines (`parallel`, `crosscheck`) and filters the fixed participants in `twice`.
 
-Measured review runs in September and October 2026 found distinct issues in Codex and Claude answers. Their counts apply to the tested changes and CLI versions, not to a new release or to `crosscheck`. The recorded investigations hold the cases and results.
+### Scenario migration
+
+`intent` and `panel` are no longer built-in names. Task-fit checks use `parallel`, the row-format brief in @examples/done-check/references/brief.md and `-o 'expect=^(CONFLICT|MISSING|EXTRA|UNCLEAR|MATCH|SUMMARY)'`. Pass `-b`, `-c task.md` and optional `-c spec.md`. The override replaces the review answer contract selected by `-b`. Answers live under `review/1`, not the old `compare/1`. A matching line does not establish completeness or correctness.
+
+Role-based review uses the caller-owned @examples/code-review/panel.md with supplied `review-security.md` and `review-tests.md` checklists. Copy the example outside the reviewed directory and pass its path with `-p FILE`. It still runs Codex as `risk` and Claude as `design`, with up to four calls including retries.
+
+Measured review runs in September and October 2026 found distinct issues in Codex and Claude answers. Their counts apply to the tested changes and CLI versions, not to a new release or to `crosscheck`. The panel measurements do not establish a quality gain over independent review.
 
 ### Custom pattern
 
