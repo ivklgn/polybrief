@@ -17,6 +17,15 @@ critiques have claims they can check. For your own brief, include:
 3. The evidence standard: paths, functions, tests, or linked primary sources.
 4. The requested output: conclusion, evidence, assumptions, and unknowns.
 
+What the critique stage adds is not measured for research questions. In the
+review runs recorded in the repository
+(`.archcore/research/polybrief-measured-runs.rnd.md`, Finding 5), a stage of
+the same shape, each worker checking the other's findings, confirmed 58 of 59
+items and rejected none. Expect the critiques to surface disagreements and
+missing evidence, not to filter wrong claims; that part stays with you. When
+two independent analyses are enough, `-p parallel -w claude,codex` with the
+same brief makes two calls instead of four.
+
 The default worker profile can read the project but does not provide web
 research. If your question needs current external facts, supply source material
 in the brief, or allow web access with `-o claude.web=on -o codex.web=on` and

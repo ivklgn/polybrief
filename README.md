@@ -14,6 +14,8 @@ directly from a terminal.
 
 The agents run **read-only**: they read your code, they do not change it.
 
+![How polybrief works: your agent sends a brief to polybrief, which runs separate read-only Codex, Claude Code and OpenCode (any model) workers in your repo, and returns their answers to your agent, which verifies them and replies to you](.github/assets/how-it-works.png)
+
 ## Install
 
 macOS or Linux:
@@ -56,19 +58,25 @@ prompt and answer. One `WORKER` line per answer gives its status and path. `RESU
 `<answer-…>` tags, so your agent reads them without opening files. A worker that failed or
 is not installed is named on stderr with the path of its log.
 
-## Two ready-to-copy examples
+## Ready-to-copy skills
 
-| Example | Pattern | Workers | What it shows |
+Four skills, one job each, in folders you copy into your agent's skills
+directory. The skills are general. Polybrief runs under them.
+
+| Skill | Job | Call it | Runs |
 | --- | --- | --- | --- |
-| [Code review skill](examples/code-review/README.md) | `parallel` | Codex + OpenCode | Two independent reviews of one Git change; the skill verifies findings before reporting them. |
-| [Research skill](examples/research/README.md) | `crosscheck` | Claude + Codex | Two independent analyses, then each agent critiques the other's evidence. |
+| [code-review](examples/code-review/README.md) | review a change before merge | `/code-review [base] [focus]` | `parallel`, Codex + OpenCode |
+| [research](examples/research/README.md) | answer a question about the code with sources | `/research <question> [in paths]` | `crosscheck`, Claude + Codex |
+| [done-check](examples/done-check/README.md) | does the change do what the task asked? | `/done-check [base] <task>` | `intent`, Codex + Claude |
+| [grooming](examples/grooming/README.md) | refine a backlog item before work | `/grooming <item> [in paths]` | its own pattern file, Codex + Claude |
 
-The code review folder also shows `twice` and `panel` commands for the same brief.
+```text
+/code-review origin/develop
+/done-check PROJ-142
+```
 
-Each folder contains a `SKILL.md` and a `references/` directory with a sample brief.
-The skill calls Polybrief directly. Copy the folder
-to your agent's skills directory or run the command in its README yourself.
-OpenCode requires an explicit model.
+Each folder has a `SKILL.md`, a sample brief and a guide to the answers. Its
+README shows the same run by hand. See [examples/README.md](examples/README.md).
 
 ## Patterns: how the agents work together
 

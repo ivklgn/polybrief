@@ -1,31 +1,31 @@
 # Examples
 
-The two full examples are folders you can copy into an agent's skills directory.
-They use the current read-only worker profile. A brief states the task;
-a built-in pattern states the order of agent calls.
+Four skills, one job each, in folders you copy into your agent's skills
+directory. Polybrief runs under them. It starts two read-only worker agents
+on different models and prints their answers. The skill tells your agent how
+to build the brief and how to check those answers.
 
-| Folder | Pattern | Workers | Result |
+| Skill | Job | Call it | Runs |
 | --- | --- | --- | --- |
-| [Code review](code-review/README.md) | `parallel` | Codex + OpenCode | Two independent reviews; the skill checks findings against the code. |
-| [Research](research/README.md) | `crosscheck` | Claude + Codex | Two analyses and two critiques; the skill checks sources and synthesizes the answer. |
+| [code-review](code-review/README.md) | review a change before merge | `/code-review [base] [focus]` | `parallel`, Codex + OpenCode, 2 calls |
+| [research](research/README.md) | answer a question about the code with sources | `/research <question> [in paths]` | `crosscheck`, Claude + Codex, 4 calls |
+| [done-check](done-check/README.md) | does the change do what the task asked? | `/done-check [base] <task>` | `intent`, Codex + Claude, 2 calls |
+| [grooming](grooming/README.md) | refine a backlog item before work | `/grooming <item> [in paths]` | own pattern file, Codex + Claude, 2 calls |
 
-The code review folder also has runnable `twice` and `panel` variants for the
-same brief. Its skill keeps `parallel` as the default workflow.
+```text
+/code-review origin/develop
+/research is the cache safe under concurrent writes in internal/cache
+/done-check PROJ-142
+/grooming add CSV export to the report page in internal/report
+```
 
-This repository exposes both folders as Claude Code project skills through
-`.claude/skills/`. In Claude Code opened here, invoke `/polybrief-code-review`
-or `/polybrief-research`.
+Each folder holds `SKILL.md`, the instructions your agent follows, and
+`references/` with the brief and a guide to the answers. The grooming folder
+also holds its pattern file. The worker CLIs and Polybrief must be on `PATH`.
+OpenCode also needs a model name. In this repository the folders are linked
+from `.claude/skills/`, so Claude Code opened here has all four commands.
 
-Each folder contains `SKILL.md` and a `references/` directory with its sample
-`brief.md` and result-checking guide. The skill gives the main agent the Polybrief
-command and tells it how to check the answers. The selected agent CLIs and
-Polybrief must be on `PATH`; OpenCode also requires an available model name.
-
-Polybrief does not search `references/` by itself. The code review skill passes
-its brief path explicitly; the optional `panel` command also passes both
-checklist paths with `-c`. The research skill creates a brief from your question
-or uses one you supply; its `references/brief.md` is a runnable sample.
-
-For a pattern written from scratch, see the command reference in the repository:
-`.archcore/runtime/polybrief-reference.doc.md`, section "Custom pattern from scratch"
-(that link does not travel with a copied folder).
+Which pattern, from the measured runs in `.archcore/research/`: `parallel` is
+the default. `twice` adds coverage at twice the cost. `panel` found the same
+problems as `parallel`. A critique stage confirmed nearly every finding it was
+given. The folders say where each number comes from.

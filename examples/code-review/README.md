@@ -1,73 +1,50 @@
-# Code review: Codex + OpenCode
+# Code review
 
-This is a copyable [skill folder](SKILL.md). It uses Polybrief's embedded
-**`parallel` pattern**: Codex and OpenCode review the same Git change
-independently. The skill then verifies their findings against the code and
-reports a final review. The [brief](references/brief.md) and [reference](references/review-results.md)
-stay with the skill.
+A skill that reviews a Git change before merge. Codex and OpenCode each review
+the change on their own. The skill checks every finding against the code and
+reports the ones that hold. It runs Polybrief with the `parallel` pattern,
+two model calls.
 
-Install Polybrief and sign in to the Codex and OpenCode CLIs. OpenCode also
-needs a model in `provider/model` form. From this folder, review a branch:
+## From your agent
+
+Copy this folder to `~/.claude/skills/code-review/` or
+`~/.codex/skills/code-review/`, then:
+
+```text
+/code-review                                   current branch against the default branch
+/code-review origin/develop                    against another base
+/code-review main check the migration rollback a base plus a focus for the reviewers
+```
+
+The skill finds the merge base, picks the OpenCode model from `polybrief
+config` or asks for one, runs Polybrief, and reports confirmed findings with
+`file:line`, impact and evidence. Rejected claims and unchecked concerns are
+listed apart.
+
+## By hand
 
 ```bash
 repo=/path/to/repo
-model=provider/model
 base="$(git -C "$repo" merge-base HEAD origin/main)"
 polybrief -C "$repo" -b "$base" -p parallel -w codex,opencode \
-  -o "opencode.model=$model" --label code-review "$PWD/references/brief.md"
+  -o opencode.model=provider/model --label code-review "$PWD/references/brief.md"
 ```
 
-Replace `origin/main` with the branch you are reviewing against and
-`provider/model` with an available OpenCode model. If invoking the skill from
-another directory, use the absolute path to `references/brief.md`. For a dry plan
-without model calls:
+Preview without a model: `polybrief plan -p parallel -w codex,opencode`.
+
+## More samples
+
+Needs the Codex and Claude CLIs. `twice` runs four reviews, two per worker,
+and is the one to pick when one run is not enough: in the measured runs a
+second sample found problems the first missed (`.archcore/research/polybrief-measured-runs.rnd.md`,
+Finding 3). `panel` gives Codex the security and test checklists and Claude
+the design lens. It found the same problems as `parallel` (Finding 4) and is
+here to show how checklists reach one worker.
 
 ```bash
-polybrief plan -p parallel -w codex,opencode
+polybrief -C "$repo" -b "$base" -p twice --label code-review-twice "$PWD/references/brief.md"
+polybrief -C "$repo" -b "$base" -p panel -c "$PWD/references/review-security.md" \
+  -c "$PWD/references/review-tests.md" --label code-review-panel "$PWD/references/brief.md"
 ```
 
-To install it as an agent skill, copy the **whole folder** into your agent's
-skills directory, for example `~/.codex/skills/polybrief-code-review/` or
-`~/.claude/skills/polybrief-code-review/`. The skill finds the merge base,
-runs Polybrief directly, reads both answers, and verifies each finding before
-reporting it. See [references/review-results.md](references/review-results.md) for statuses and
-customization. The optional [security](references/review-security.md) and
-[test](references/review-tests.md) checklists are for `panel`; the main skill does not need them.
-
-## Try the other review patterns
-
-The skill above stays on `parallel`. To try the same brief with the other
-built-in review patterns, sign in to the Codex and Claude CLIs, then run these
-commands from this folder. Reuse `repo` and `base` from the first command.
-
-**`twice`** runs two independent Codex reviews and two independent Claude
-reviews. It makes four calls; its participants are fixed in the pattern.
-
-```bash
-polybrief -C "$repo" -b "$base" -p twice \
-  --label code-review-twice "$PWD/references/brief.md"
-```
-
-**`panel`** asks Codex to focus on security and tests, and Claude on design.
-It needs the two supplied checklists. It makes two calls, or up to four if an
-answer has the wrong format and is retried.
-
-```bash
-polybrief -C "$repo" -b "$base" -p panel \
-  -c "$PWD/references/review-security.md" \
-  -c "$PWD/references/review-tests.md" \
-  --label code-review-panel "$PWD/references/brief.md"
-```
-
-Preview either run without calling a model:
-
-```bash
-polybrief plan -p twice
-polybrief plan -p panel \
-  -c "$PWD/references/review-security.md" \
-  -c "$PWD/references/review-tests.md"
-```
-
-Read the `WORKER` lines for the answer paths: `twice` names `codex-1`,
-`codex-2`, `claude-1`, `claude-2`; `panel` names `risk` and `design`. Verify
-findings against the code as in the main skill.
+Statuses, output paths and how to adapt the brief: [references/review-results.md](references/review-results.md).

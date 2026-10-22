@@ -50,13 +50,19 @@ Reference for the argument-only Go binary `polybrief`. @README.md is the short s
 
 ## Brief and checklist
 
-A brief is plain text. The copyable review and research briefs live at @examples/code-review/references/brief.md and @examples/research/references/brief.md. A checklist adds one named set of criteria to a worker prompt; it does not judge results. `panel` needs `review-security.md` and `review-tests.md`, supplied with `-c`; the files live in @examples/code-review/references/. Polybrief identifies a checklist by its basename, so moving it into `references/` does not change the lane name. Frontmatter is removed before a checklist reaches the worker. The caller checks evidence and makes final decisions.
+A brief is plain text. The copyable review, research and done-check briefs live at @examples/code-review/references/brief.md, @examples/research/references/brief.md and @examples/done-check/references/brief.md; the done-check brief carries the row format that the built-in `intent` pattern expects, and the task goes in as `-c task.md`. A checklist adds one named set of criteria to a worker prompt; it does not judge results. `panel` needs `review-security.md` and `review-tests.md`, supplied with `-c`; the files live in @examples/code-review/references/. Polybrief identifies a checklist by its basename, so moving it into `references/` does not change the lane name. Frontmatter is removed before a checklist reaches the worker. The caller checks evidence and makes final decisions.
 
 The copyable @examples/code-review/SKILL.md calls `parallel` with Codex and
 OpenCode, the Git merge base, and the required OpenCode model. The copyable
 @examples/research/SKILL.md calls `crosscheck` with Claude and Codex and a
-caller-owned brief. Both skills call the binary directly and include references
-for reading worker output and verifying claims.
+caller-owned brief. The copyable @examples/done-check/SKILL.md (the done check) calls `intent` with
+Codex and Claude, the merge base and the task text as a checklist file. All three
+skills call the binary directly and include references for reading worker output
+and verifying claims. The copyable @examples/grooming/SKILL.md refines a backlog item with its own pattern
+file, @examples/grooming/grooming.md: one stage with `expect` and `retry: 1`
+for its rows, because a run without a Git base has no answer contract;
+`tests/test_cli.sh` plans it. The skills carry general names (`code-review`,
+`research`, `done-check`, `grooming`); Polybrief is the engine under them.
 
 ## Custom pattern from scratch
 

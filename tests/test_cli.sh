@@ -232,6 +232,10 @@ refused polybrief -o nosuch=1 "$scratch/brief" || fail "unknown setting"
 refused polybrief -o claude.effort=minimal "$scratch/brief" || fail "an effort outside the client's values"
 refused polybrief -C "$scratch/work" -b HEAD "$scratch/brief" || fail "-b outside a Git tree"
 
+# the example files stay valid: the grooming pattern plans, and the done-check brief and task exist
+grep -q '^CALLS	4	4$' <<< "$(polybrief plan -p "$root/examples/grooming/grooming.md")" || fail "example grooming pattern"
+[ -s "$root/examples/done-check/references/brief.md" ] && [ -s "$root/examples/done-check/references/task.md" ] || fail "intent example files"
+
 # the binary works from any place, without a checkout
 cp "$scratch/bin/polybrief" "$scratch/relocated"
 [ "$("$scratch/relocated" --version)" = "$version" ] && "$scratch/relocated" plan -p crosscheck >/dev/null || fail "relocated binary"
