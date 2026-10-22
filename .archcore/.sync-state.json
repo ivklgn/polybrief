@@ -351,6 +351,26 @@
       "source": "runtime/polybrief-pattern-file.spec.md",
       "target": "architecture/run-at-base.adr.md",
       "type": "implements"
+    },
+    {
+      "source": "research/intent-baseline-spike.rnd.md",
+      "target": "research/intent-pattern-experiment.research.md",
+      "type": "extends"
+    },
+    {
+      "source": "research/intent-baseline-spike.rnd.md",
+      "target": "architecture/run-at-base.adr.md",
+      "type": "supports"
+    },
+    {
+      "source": "research/intent-baseline-spike.rnd.md",
+      "target": "runtime/polybrief-patterns.doc.md",
+      "type": "supports"
+    },
+    {
+      "source": "research/cascade-pattern-spike.rnd.md",
+      "target": "research/polybrief-measured-runs.rnd.md",
+      "type": "extends"
     }
   ]
 }

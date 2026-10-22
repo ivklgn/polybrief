@@ -32,12 +32,13 @@ cat > "$scratch/bin/claude" <<'FAKE'
 [ "${1:-}" != --version ] || { echo fake-claude; exit; }
 case " $* " in *' -p --tools Read,Grep,Glob --strict-mcp-config --setting-sources  --no-session-persistence '*) ;; *) exit 9 ;; esac
 echo "$*" > "$HOME/claude.args"
+first=FINDING; [ ! -f "$HOME/claude.first" ] || first=$(cat "$HOME/claude.first")
 if [[ " $* " == *' --output-format stream-json '* ]]; then
   cat >/dev/null
   printf '%s\n' '{"type":"result","result":"Claude research answer"}'
   exit
 fi
-echo FINDING
+echo "$first"
 cat
 FAKE
 cat > "$scratch/bin/opencode" <<'FAKE'
@@ -82,13 +83,56 @@ out=$(polybrief -C "$scratch/repo" -b HEAD -p panel -w codex -c "$root/examples/
 grep -q 'My own tests checklist.' <<< "$out" && ! grep -q 'Report a missing test' <<< "$out" \
   || fail "-c must use the supplied checklist: $out"
 
-# intent: intended runs on the tree of the base without the diff; built and the judge get the diff
+# intent: both workers get the task, the spec and the diff; the row contract replaces the review contract
 printf 'the task\n' > "$scratch/task.md"
 printf 'the spec\n' > "$scratch/spec.md"
-printf 'ITEM describe one side\n' > "$scratch/intent-brief"
-out=$(polybrief -C "$scratch/repo" -b HEAD -p intent -c "$scratch/task.md" -c "$scratch/spec.md" -o log=off -o tool_log=off "$scratch/intent-brief")
+printf 'SUMMARY conflicts=0\n' > "$scratch/intent-brief"
+out=$(polybrief -C "$scratch/repo" -b HEAD -p intent -c "$scratch/task.md" -c "$scratch/spec.md" -o log=off -o tool_log=off "$scratch/intent-brief") || fail "intent must complete with row answers: $out"
 side() { awk -v w="from=\"$1\"" 'index($0, w) {on=1} on {print} on && /^<\/answer-/ {exit}' <<< "$out"; }
-grep -q '^RESULT[[:space:]]complete[[:space:]]3$' <<< "$out" || fail "intent must run three calls: $out"
+grep -q '^RESULT[[:space:]]complete[[:space:]]2$' <<< "$out" || fail "intent must run two calls: $out"
+for w in codex claude; do
+  grep -q '<checklist name="task">' <<< "$(side $w)" && grep -q '<checklist name="spec">' <<< "$(side $w)" && grep -q '## The change' <<< "$(side $w)" \
+    || fail "$w gets the task, the spec and the diff: $(side $w)"
+done
+# a row answer is ok under intent; the same answer fails the review contract that a stage without expect gets
+printf 'CONFLICT | asked | built | why | a.txt:1\n' > "$HOME/claude.first"
+out=$(polybrief -C "$scratch/repo" -b HEAD -p intent -w claude -c "$scratch/task.md" -o log=off -o tool_log=off "$scratch/intent-brief") || fail "intent must complete with row answers: $out"
+grep -q '^WORKER	compare	1	claude	ok	' <<< "$out" || fail "a row answer must be ok under intent: $out"
+grep -v '^- expect:' "$root/patterns/intent.md" > "$scratch/intent-noexpect.md"
+out=$(polybrief -C "$scratch/repo" -b HEAD -p "$scratch/intent-noexpect.md" -w claude -c "$scratch/task.md" -o log=off -o tool_log=off "$scratch/intent-brief") || true
+grep -q '^WORKER	compare	1	claude	malformed	' <<< "$out" || fail "without expect the row answer must fail the review contract: $out"
+rm "$HOME/claude.first"
+grep -q '^PLAN	compare	claude	1$' <<< "$(polybrief plan -p intent -w claude)" || fail "-w filters intent"
+grep -q '^CALLS	3	3$' <<< "$(polybrief plan -p intent -w codex,claude,opencode -o opencode.model=p/m)" || fail "intent takes three workers within its call limit"
+
+# at base: the participant runs on the tree of the base without the diff; the others get the diff
+cat > "$scratch/at-base.md" <<'PAT'
+---
+name: at-base
+description: test
+workers: codex, claude
+max-calls: 3
+---
+
+## describe
+
+- run: codex as intended at base with task
+- run: claude as built with none
+- expect: ^ITEM
+
+{{brief}}
+
+## compare
+
+- run: claude as judge
+- input: all
+- expect: ^ITEM
+
+{{input}}
+PAT
+printf 'ITEM describe one side\n' > "$scratch/base-brief"
+out=$(polybrief -C "$scratch/repo" -b HEAD -p "$scratch/at-base.md" -c "$scratch/task.md" -c "$scratch/spec.md" -o log=off -o tool_log=off "$scratch/base-brief")
+grep -q '^RESULT[[:space:]]complete[[:space:]]3$' <<< "$out" || fail "at-base must run three calls: $out"
 grep -q -- '-C [^ ]*/polybrief-base\.' "$HOME/codex.args" || fail "intended must run in the base tree: $(cat "$HOME/codex.args")"
 [ "$(cat "$HOME/codex.tree")" = "$(printf '.git\na.txt\n0\na')" ] || fail "the base tree holds the base commit and no history: $(cat "$HOME/codex.tree")"
 ! grep -q '## The change' <<< "$(side intended)" && grep -q 'the task' <<< "$(side intended)" || fail "intended gets the task and no diff: $(side intended)"
@@ -99,13 +143,13 @@ grep -q '<checklist name="spec">' <<< "$judge" && [ "$(grep -c '<checklist name=
   || fail "the judge gets both answers, the task, the spec and the diff: $judge"
 [ -z "$(ls -d "$TMPDIR"/polybrief-base.* 2>/dev/null)" ] || fail "the base tree must be removed after the run"
 runs=$(ls -d "$TMPDIR"/polybrief-pattern.* | wc -l)
-rc=0; out=$(polybrief -C "$scratch/work" -p intent -c "$scratch/task.md" "$scratch/intent-brief" 2>"$scratch/err") || rc=$?
+rc=0; out=$(polybrief -C "$scratch/work" -p "$scratch/at-base.md" -c "$scratch/task.md" "$scratch/base-brief" 2>"$scratch/err") || rc=$?
 [ "$rc" = 2 ] && [ -z "$out" ] && [ "$(ls -d "$TMPDIR"/polybrief-pattern.* | wc -l)" = "$runs" ] && grep -q "needs a Git base" "$scratch/err" \
   || fail "at base without -b is refused before OUT: $out $(cat "$scratch/err")"
-rc=0; out=$(polybrief -C "$scratch/repo" -b nosuch -p intent -c "$scratch/task.md" "$scratch/intent-brief" 2>"$scratch/err") || rc=$?
+rc=0; out=$(polybrief -C "$scratch/repo" -b nosuch -p "$scratch/at-base.md" -c "$scratch/task.md" "$scratch/base-brief" 2>"$scratch/err") || rc=$?
 [ "$rc" = 2 ] && ! grep -q '^WORKER' <<< "$out" && [ -z "$(ls -d "$TMPDIR"/polybrief-base.* 2>/dev/null)" ] \
   || fail "an unknown base is refused before any worker: $out $(cat "$scratch/err")"
-grep -q '^CALLS	3	3$' <<< "$(polybrief plan -p intent -c "$scratch/task.md")" || fail "plan of intent needs no -b"
+grep -q '^CALLS	3	3$' <<< "$(polybrief plan -p "$scratch/at-base.md" -c "$scratch/task.md")" || fail "plan of an at-base pattern needs no -b"
 
 # Both copyable skill folders use direct CLI calls and their own briefs.
 cp -R "$root/examples/code-review" "$scratch/review-skill"
