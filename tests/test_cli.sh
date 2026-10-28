@@ -71,16 +71,16 @@ out=$(polybrief -C "$scratch/work" -p crosscheck -o log=off -o tool_log=off - < 
   || fail "crosscheck must run two stages: $out"
 
 # A review uses an explicit brief. A caller-owned panel needs its named checklists.
-cp -R "$root/examples/code-review" "$scratch/review-skill"
+cp -R "$root/examples/codereview" "$scratch/review-skill"
 g() { git -C "$scratch/repo" -c user.name=t -c user.email=t@t "$@"; }
 mkdir -p "$scratch/repo" && g init -q && printf 'a\n' > "$scratch/repo/a.txt" && g add a.txt && g commit -qm init
 printf 'b\n' >> "$scratch/repo/a.txt"
-out=$(polybrief -C "$scratch/repo" -b HEAD -w codex -o log=off "$root/examples/code-review/references/brief.md")
+out=$(polybrief -C "$scratch/repo" -b HEAD -w codex -o log=off "$root/examples/codereview/references/brief.md")
 grep -q 'Review the supplied Git change' <<< "$out" || fail "the explicit review brief must reach the worker: $out"
-out=$(polybrief -C "$scratch/repo" -b HEAD -p "$scratch/review-skill/panel.md" -w codex -c "$root/examples/code-review/references/review-security.md" -c "$root/examples/code-review/references/review-tests.md" -o log=off "$root/examples/code-review/references/brief.md")
+out=$(polybrief -C "$scratch/repo" -b HEAD -p "$scratch/review-skill/panel.md" -w codex -c "$root/examples/codereview/references/review-security.md" -c "$root/examples/codereview/references/review-tests.md" -o log=off "$root/examples/codereview/references/brief.md")
 grep -q 'Report a missing test' <<< "$out" || fail "panel must use supplied checklists: $out"
 mkdir -p "$scratch/own" && printf 'My own tests checklist.\n' > "$scratch/own/review-tests.md"
-out=$(polybrief -C "$scratch/repo" -b HEAD -p "$scratch/review-skill/panel.md" -w codex -c "$root/examples/code-review/references/review-security.md" -c "$scratch/own/review-tests.md" -o log=off "$root/examples/code-review/references/brief.md")
+out=$(polybrief -C "$scratch/repo" -b HEAD -p "$scratch/review-skill/panel.md" -w codex -c "$root/examples/codereview/references/review-security.md" -c "$scratch/own/review-tests.md" -o log=off "$root/examples/codereview/references/brief.md")
 grep -q 'My own tests checklist.' <<< "$out" && ! grep -q 'Report a missing test' <<< "$out" \
   || fail "-c must use the supplied checklist: $out"
 
@@ -154,7 +154,7 @@ grep -q '^CALLS	3	3$' <<< "$(polybrief plan -p "$scratch/at-base.md" -c "$scratc
 
 # Copyable skills run outside the checkout, using their own briefs.
 out=$(cd "$scratch/work" && polybrief -C "$scratch/repo" -b HEAD -p parallel -w codex,opencode \
-  -o opencode.model=openai/gpt-5 --label code-review "$scratch/review-skill/references/brief.md")
+  -o opencode.model=openai/gpt-5 --label codereview "$scratch/review-skill/references/brief.md")
 grep -q '^WORKER[[:space:]]review[[:space:]]1[[:space:]]codex[[:space:]]ok[[:space:]]' <<< "$out" \
   && grep -q '^WORKER[[:space:]]review[[:space:]]1[[:space:]]opencode[[:space:]]ok[[:space:]]' <<< "$out" \
   && grep -q '^RESULT[[:space:]]complete[[:space:]]2$' <<< "$out" \
@@ -194,9 +194,9 @@ cp -R "$root/examples/grooming" "$scratch/grooming-skill"
 grep -q '^CALLS	4	4$' <<< "$(cd "$scratch/work" && polybrief plan -p "$scratch/grooming-skill/grooming.md")" || fail "copied grooming skill"
 
 refused polybrief --home "$scratch/own" "$scratch/brief" || fail "--home is no longer accepted"
-refused polybrief -C "$scratch/repo" -b HEAD -p "$scratch/review-skill/panel.md" "$root/examples/code-review/references/brief.md" \
+refused polybrief -C "$scratch/repo" -b HEAD -p "$scratch/review-skill/panel.md" "$root/examples/codereview/references/brief.md" \
   && grep -q "needs a checklist named 'review-security': pass -c PATH/review-security.md" "$scratch/err" || fail "panel names the missing checklist: $(cat "$scratch/err")"
-refused polybrief plan -p "$scratch/review-skill/panel.md" -c "$root/examples/code-review/references/review-security.md" \
+refused polybrief plan -p "$scratch/review-skill/panel.md" -c "$root/examples/codereview/references/review-security.md" \
   && grep -q "named 'review-tests'" "$scratch/err" || fail "panel names the second missing checklist"
 refused polybrief plan -w '' && grep -q 'needs at least one worker' "$scratch/err" || fail "-w '' is refused"
 echo x > "$scratch/Bad_Name.md"; refused polybrief plan -c "$scratch/Bad_Name.md" && grep -q 'bad checklist name' "$scratch/err" || fail "a checklist name outside a-z0-9- is refused"

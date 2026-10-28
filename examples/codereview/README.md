@@ -7,13 +7,13 @@ two model calls.
 
 ## From your agent
 
-Copy this folder to `~/.claude/skills/code-review/` or
-`~/.codex/skills/code-review/`, then:
+Copy this folder to `~/.claude/skills/codereview/` or
+`~/.codex/skills/codereview/`, then:
 
 ```text
-/code-review                                   current branch against the default branch
-/code-review origin/develop                    against another base
-/code-review main check the migration rollback a base plus a focus for the reviewers
+/codereview                                   current branch against the default branch
+/codereview origin/develop                    against another base
+/codereview main check the migration rollback a base plus a focus for the reviewers
 ```
 
 The skill finds the merge base, picks the OpenCode model from `polybrief
@@ -27,7 +27,7 @@ listed apart.
 repo=/path/to/repo
 base="$(git -C "$repo" merge-base HEAD origin/main)"
 polybrief -C "$repo" -b "$base" -p parallel -w codex,opencode \
-  -o opencode.model=provider/model --label code-review "$PWD/references/brief.md"
+  -o opencode.model=provider/model --label codereview "$PWD/references/brief.md"
 ```
 
 Preview without a model: `polybrief plan -p parallel -w codex,opencode`.
@@ -40,7 +40,7 @@ second sample found problems the first missed (`.archcore/research/polybrief-mea
 Finding 3).
 
 ```bash
-polybrief -C "$repo" -b "$base" -p twice --label code-review-twice "$PWD/references/brief.md"
+polybrief -C "$repo" -b "$base" -p twice --label codereview-twice "$PWD/references/brief.md"
 ```
 
 ## Role-based review
@@ -55,7 +55,7 @@ absolute path of that copied folder:
 ```bash
 polybrief -C "$repo" -b "$base" -p "$skill_dir/panel.md" \
   -c "$skill_dir/references/review-security.md" \
-  -c "$skill_dir/references/review-tests.md" --label code-review-panel "$skill_dir/references/brief.md"
+  -c "$skill_dir/references/review-tests.md" --label codereview-panel "$skill_dir/references/brief.md"
 ```
 
 Statuses, output paths and how to adapt the brief: [references/review-results.md](references/review-results.md).

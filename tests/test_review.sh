@@ -428,7 +428,7 @@ rm "$bin/opencode"
 out=$(run --workers codex,opencode $OCM)
 [ "$(row "$out" opencode)" = missing ] && [ "$(row "$out" codex)" = ok ] || fail "a missing OpenCode CLI must be reported: $out"
 
-# A non-Git research directory works without a code-review answer contract.
+# A non-Git research directory works without a codereview answer contract.
 mkdir -p "$T/research"
 printf 'research result\n' > "$F/codex.answer"
 out=$("$S" launch --dir "$T/research" --brief "$T/brief.md" --workers codex)

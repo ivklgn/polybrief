@@ -1,5 +1,5 @@
 ---
-name: code-review
+name: codereview
 description: Review a Git change before merge with two independent read-only reviews (Codex and OpenCode through Polybrief), then verify the findings against the code and report the actionable ones. Use when the user asks to review a branch, a commit or the working tree; takes an optional base branch or commit and free-text focus. Not for checking a change against its ticket (use done-check) or for answering a question about the code (use research). Spends two paid model calls.
 ---
 
@@ -13,7 +13,7 @@ CLIs before running.
 
 ## Input
 
-`/code-review [base] [focus...]`
+`/codereview [base] [focus...]`
 
 - `base`: the branch, tag or commit to compare against, for example
   `origin/develop`, `v2.1` or `a1b2c3d`. Only the first word of the arguments
@@ -31,8 +31,8 @@ CLIs before running.
 - `REPO`: the current working directory, or a path the user names.
 - No arguments: review the working tree and the current branch against the
   default base.
-- Examples: `/code-review`, `/code-review origin/develop`,
-  `/code-review main check the migration and its rollback`.
+- Examples: `/codereview`, `/codereview origin/develop`,
+  `/codereview main check the migration and its rollback`.
 - A pull request URL is not supported: ask the user to check the branch out.
 
 ## Run the review
@@ -48,7 +48,7 @@ CLIs before running.
 
    ```bash
    polybrief -C "$repo" -b "$merge_base" -p parallel -w codex,opencode \
-     -o "opencode.model=$opencode_model" --label code-review \
+     -o "opencode.model=$opencode_model" --label codereview \
      "$skill_dir/references/brief.md"
    ```
 

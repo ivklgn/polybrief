@@ -1,6 +1,6 @@
 ---
 name: done-check
-description: Check a Git change against its definition of done, the task text, with two independent comparisons (Codex and Claude through Polybrief), then verify each mismatch and report what is missing, conflicting or extra. Use when the user asks whether a change is done, meets its task or ticket, or before closing a task; takes an optional base branch first, then the task as pasted text, a file or a ticket key. Not for a general code review (use code-review) or for a ticket that has no change yet (use grooming). Spends two paid model calls.
+description: Check a Git change against its definition of done, the task text, with two independent comparisons (Codex and Claude through Polybrief), then verify each mismatch and report what is missing, conflicting or extra. Use when the user asks whether a change is done, meets its task or ticket, or before closing a task; takes an optional base branch first, then the task as pasted text, a file or a ticket key. Not for a general code review (use codereview) or for a ticket that has no change yet (use grooming). Spends two paid model calls.
 ---
 
 # Done check

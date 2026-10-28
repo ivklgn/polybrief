@@ -60,18 +60,19 @@ is not installed is named on stderr with the path of its log.
 
 ## Ready-to-copy skills
 
-Four skills, one job each, in folders you copy into your agent's skills
+Five skills, one job each, in folders you copy into your agent's skills
 directory. The skills are general. Polybrief runs under them.
 
 | Skill | Job | Call it | Runs |
 | --- | --- | --- | --- |
-| [code-review](examples/code-review/README.md) | review a change before merge | `/code-review [base] [focus]` | `parallel`, Codex + OpenCode |
+| [codereview](examples/codereview/README.md) | review a change before merge | `/codereview [base] [focus]` | `parallel`, Codex + OpenCode |
+| [codereview-verdict](examples/codereview-verdict/README.md) | review a change and show how the reviewers decided | `/codereview-verdict [base] [focus]` | `parallel`, Codex + Claude |
 | [research](examples/research/README.md) | answer a question about the code with sources | `/research <question> [in paths]` | `crosscheck`, Claude + Codex |
 | [done-check](examples/done-check/README.md) | does the change do what the task asked? | `/done-check [base] <task>` | `parallel`, Codex + Claude |
 | [grooming](examples/grooming/README.md) | refine a backlog item before work | `/grooming <item> [in paths]` | its own pattern file, Codex + Claude |
 
 ```text
-/code-review origin/develop
+/codereview origin/develop
 /done-check PROJ-142
 ```
 
@@ -136,8 +137,8 @@ OpenCode needs `-o opencode.model=provider/model`.
 
 Task-fit checks use `parallel` with a row-format override; see the
 [done-check skill](examples/done-check/README.md). Role-based review is a
-[custom panel example](examples/code-review/panel.md), with caller-supplied
-security and test checklists; see [code review](examples/code-review/README.md#role-based-review).
+[custom panel example](examples/codereview/panel.md), with caller-supplied
+security and test checklists; see [code review](examples/codereview/README.md#role-based-review).
 Existing `-p intent` calls need `-p parallel` and the done-check `-o expect=…`
 setting. Existing `-p panel` calls need a path to a caller-owned panel file.
 

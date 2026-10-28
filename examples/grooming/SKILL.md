@@ -1,6 +1,6 @@
 ---
 name: grooming
-description: Refine a backlog item before work, as in a Scrum refinement session, with two independent reads of the item against the code (Codex and Claude through Polybrief), then verify the rows and write the refined item. Use when the user asks to groom, refine or scope a task, ticket or feature request before starting it; takes the item as pasted text, a file or a ticket key, optionally with paths it touches. Not for a change that already exists (use done-check or code-review) or for an open question with no item to refine (use research). Spends two paid model calls, up to four with retries.
+description: Refine a backlog item before work, as in a Scrum refinement session, with two independent reads of the item against the code (Codex and Claude through Polybrief), then verify the rows and write the refined item. Use when the user asks to groom, refine or scope a task, ticket or feature request before starting it; takes the item as pasted text, a file or a ticket key, optionally with paths it touches. Not for a change that already exists (use done-check or codereview) or for an open question with no item to refine (use research). Spends two paid model calls, up to four with retries.
 ---
 
 # Grooming

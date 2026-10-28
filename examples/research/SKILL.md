@@ -1,6 +1,6 @@
 ---
 name: research
-description: Investigate a question about a codebase with two independent analyses that then critique each other (Claude and Codex through Polybrief), check the cited evidence and write a sourced conclusion. Use when the user asks to research, investigate or compare options in a project before deciding; takes the question as free text, optionally with paths to look in. Not for refining a ticket before work (use grooming), reviewing a change (use code-review) or a quick lookup you can answer by reading the code yourself. Spends four paid model calls.
+description: Investigate a question about a codebase with two independent analyses that then critique each other (Claude and Codex through Polybrief), check the cited evidence and write a sourced conclusion. Use when the user asks to research, investigate or compare options in a project before deciding; takes the question as free text, optionally with paths to look in. Not for refining a ticket before work (use grooming), reviewing a change (use codereview) or a quick lookup you can answer by reading the code yourself. Spends four paid model calls.
 ---
 
 # Research
