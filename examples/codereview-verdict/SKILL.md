@@ -1,6 +1,6 @@
 ---
 name: codereview-verdict
-description: Review a Git change before merge with two independent read-only reviewers on different models (Codex and Claude through Polybrief), verify every claim against the code and report a verdict with a section that tells how the reviewers decided: who found what, with which argument, where they disagreed and why a claim was kept or dropped. Use when the user asks to review a branch, a commit or the working tree; takes an optional base branch or commit and free-text focus. Not for checking a change against its ticket (use done-check). Spends two paid model calls.
+description: Review a Git change before merge with two independent read-only reviewers on different models (Codex and Claude through Polybrief), verify every claim against the code and report a verdict with a section that tells how the reviewers decided (who found what, with which argument, where they disagreed and why a claim was kept or dropped). Use when the user asks to review a branch, a commit or the working tree; takes an optional base branch or commit and free-text focus. Not for checking a change against its ticket (use done-check). Spends two paid model calls.
 ---
 
 # Review verdict
